@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservas — Buenas y Santas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde: #33481F;
+    --verde-2: #3F5A2E;
+    --oro: #E3A857;
+    --texto: #23281E;
+    --linea: rgba(35,40,30,0.15);
+    --pastel: #E7F0DE;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--pastel);
+    color: var(--texto);
+    font-family: 'Nunito', Georgia, serif;
+    min-height:100vh;
+    padding: 32px 16px;
+  }
+  .layout{
+    max-width: 980px;
+    margin: 0 auto;
+    display:grid;
+    grid-template-columns: 1fr 300px;
+    gap: 28px;
+    align-items:start;
+  }
+  .marco{
+    border: 3px solid var(--verde);
+    border-radius: 10px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .cabecera{
+    background: var(--verde);
+    padding: 22px 24px 20px;
+    text-align:center;
+  }
+  .logo-plate{
+    display:inline-block; background:#fff; padding: 10px 20px; border-radius: 4px; margin-bottom:10px;
+  }
+  .logo-plate img{ max-height: 54px; width:auto; display:block; }
+  .logo-fallback{
+    font-family:'Playfair Display', serif; font-weight:700; font-size:22px; color: var(--verde);
+  }
+  h1{
+    font-family: 'Playfair Display', serif; font-weight: 700; color:#fff;
+    font-size: clamp(32px, 5.5vw, 42px); margin: 0 0 4px;
+  }
+  .subtitle{ color: #E4EFD8; font-style: italic; font-size: 14px; margin:0; font-family:'Nunito', sans-serif; }
+
+  .card-body{ padding: 32px 36px 36px; }
+
+  .paso-titulo{
+    font-family:'Nunito', sans-serif; font-weight:700; font-size: 13px; letter-spacing:.08em;
+    text-transform:uppercase; color: var(--verde); margin: 28px 0 12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .paso-titulo:first-of-type{ margin-top:0; }
+  .paso-titulo .num{
+    width:20px; height:20px; border:1px solid var(--verde); border-radius:50%;
+    display:inline-flex; align-items:center; justify-content:center; font-size:11px; color:var(--verde);
+  }
+
+  .calendario{ border:1px solid var(--linea); border-radius:6px; padding:18px; }
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .cal-header button{
+    background:none; border:1px solid var(--linea); color:var(--texto); width:32px; height:32px;
+    border-radius:4px; cursor:pointer; font-size:15px;
+  }
+  .cal-header button:hover{ border-color:var(--verde); color:var(--verde); }
+  .cal-mes{ font-family:'Playfair Display', serif; font-size:18px; text-transform:capitalize; }
+  .cal-dias-nombre{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:12px; color:var(--verde); margin-bottom:8px; font-weight:700; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .cal-dia{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    border-radius:4px; font-size:15px; cursor:pointer; border:1px solid transparent; font-family:'Nunito', sans-serif;
+  }
+  .cal-dia:hover:not(.deshabilitado){ border-color: var(--verde); }
+  .cal-dia.vacio{ visibility:hidden; }
+  .cal-dia.deshabilitado{ color: rgba(35,40,30,0.25); cursor:default; }
+  .cal-dia.seleccionado{ background: var(--verde); color:#fff; border-color: var(--verde); }
+
+  .field{ margin-bottom:18px; }
+  .field label{
+    display:flex; align-items:baseline; gap:6px; font-size:13px;
+    letter-spacing: 0.04em; color: var(--verde); margin-bottom:6px; font-weight:700; font-family:'Nunito', sans-serif;
+    text-transform:uppercase;
+  }
+  .field label .req{ color: #A63B3B; font-size: 11px; }
+  .field .nota{ font-size:12px; color: var(--verde-2); margin-top:6px; font-weight:600; }
+  .field .nota-grande{ font-size:16px; color: var(--verde-2); margin-top:6px; font-weight:700; }
+  input, textarea, select{
+    width:100%; background: transparent; border:none; border-bottom:1px solid var(--linea);
+    color: var(--texto); font-family:'Nunito', sans-serif; font-size:17px; padding:6px 2px 10px; outline:none;
+  }
+  select option{ background:#fff; color: var(--texto); }
+  select:disabled, input:disabled{ opacity:.4; }
+  textarea{ resize:vertical; min-height:60px; font-family:'Nunito', sans-serif; font-size:15px; }
+  input:focus, textarea:focus, select:focus{ border-bottom-color: var(--verde); }
+  ::placeholder{ color: rgba(35,40,30,0.35); font-style: italic; }
+
+  .telefono-row{ display:flex; gap:10px; }
+  .telefono-row select{ flex: 0 0 100px; }
+  .telefono-row input{ flex:1; }
+
+  .checkbox-field label{
+    text-transform:none; font-weight:400; font-size:13px; color: var(--texto);
+    display:flex; align-items:flex-start; gap:8px; cursor:pointer; letter-spacing:0;
+  }
+  .checkbox-field input{ width:18px; height:18px; flex-shrink:0; margin-top:2px; accent-color: var(--verde); }
+
+  .aviso-whatsapp{
+    text-align:center; font-family:'Nunito', sans-serif; font-weight:700; font-size:13px;
+    letter-spacing:.03em; color: var(--verde); margin: 18px 0 4px; text-transform:uppercase;
+  }
+
+  button.enviar{
+    width:100%; margin-top: 6px; background: var(--verde); color: #fff;
+    border: 1px solid var(--verde); padding: 16px; font-family:'Nunito', sans-serif; font-weight:700;
+    font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+    border-radius: 4px;
+  }
+  button.enviar:hover{ background: #26350f; }
+  button.enviar:disabled{ opacity:.6; cursor:default; }
+  .status{ text-align:center; font-size: 14px; min-height: 20px; margin-top: 10px; font-weight:700; font-family:'Nunito', sans-serif; }
+  .status.ok{ color: var(--verde); }
+  .status.err{ color: #A63B3B; }
+
+  .pantalla-confirmacion{
+    display:none;
+    background: var(--verde);
+    padding: 40px 20px;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  .pantalla-confirmacion .caja-blanca{
+    background:#fff;
+    border-radius:12px;
+    padding: 36px 32px;
+    max-width: 320px;
+    width:100%;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .pantalla-confirmacion .caja-blanca img{
+    max-height:48px; width:auto; margin-bottom:18px;
+  }
+  .pantalla-confirmacion .caja-blanca .logo-fallback-conf{
+    font-family:'Playfair Display', serif; font-weight:700; font-size:18px; color:var(--verde); margin-bottom:18px;
+  }
+  .pantalla-confirmacion .mensaje{
+    font-family:'Playfair Display', serif; font-weight:700; font-size:21px; color:var(--texto); line-height:1.45;
+  }
+  .pantalla-confirmacion .otra-reserva{
+    margin-top:22px; background:none; border:none; color:var(--verde);
+    font-family:'Nunito', sans-serif; font-weight:700; font-size:13px; letter-spacing:.04em;
+    text-transform:uppercase; text-decoration:underline; cursor:pointer; padding:0;
+  }
+
+  /* Resumen escritorio (lateral, fijo) */
+  .resumen-desktop{ position: sticky; top: 24px; border:1px solid var(--linea); border-radius:8px; padding:20px; background:#fff; }
+  .resumen-titulo{
+    font-family:'Nunito', sans-serif; font-size:13px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--verde); margin: 0 0 16px; font-weight:700;
+  }
+  .resumen-item{ display:flex; justify-content:space-between; gap:10px; font-size:14px; padding:8px 0; border-bottom:1px dotted var(--linea); font-family:'Nunito', sans-serif; }
+  .resumen-item span:first-child{ color: var(--verde); font-weight:700; }
+  .resumen-item span:last-child{ text-align:right; }
+  .resumen-vacio{ color: var(--verde-2); font-style:italic; font-size:13px; }
+
+  /* Resumen móvil (dentro del formulario, antes del botón) */
+  .resumen-mobile{ display:none; }
+
+  @media (max-width: 800px){
+    .layout{ grid-template-columns: 1fr; }
+    .resumen-desktop{ display:none; }
+    .card-body{ padding: 26px 20px 30px; }
+
+    .resumen-mobile{
+      display:block; border:2px solid var(--verde); border-radius:8px; padding:18px;
+      margin: 24px 0 6px; background: var(--pastel);
+    }
+    .resumen-mobile .dia-grande{
+      font-family:'Playfair Display', serif; font-weight:700; text-transform:uppercase;
+      font-size: 30px; color: var(--verde); text-align:center; line-height:1.1;
+    }
+    .resumen-mobile .fecha-sub{
+      text-align:center; font-family:'Nunito', sans-serif; font-size:14px; color:var(--verde-2);
+      margin-bottom:12px;
+    }
+    .resumen-mobile .resumen-item{ font-size:13px; padding:6px 0; }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <div class="marco">
+    <div class="cabecera">
+      <div class="logo-plate">
+        <img src="logo_buenasysantas.jpg" alt="Buenas y Santas" onerror="this.parentElement.style.display='none'; document.getElementById('logo-fallback').style.display='inline-block';">
+        <div class="logo-fallback" id="logo-fallback" style="display:none;">BUENAS Y SANTAS</div>
+      </div>
+      <h1>Reservas</h1>
+    </div>
+
+    <div class="card-body">
+      <form id="reserva-form">
+
+        <p class="paso-titulo"><span class="num">1</span> Elige el día</p>
+        <div class="calendario">
+          <div class="cal-header">
+            <button type="button" onclick="cambiarMes(-1)">‹</button>
+            <span class="cal-mes" id="cal-mes"></span>
+            <button type="button" onclick="cambiarMes(1)">›</button>
+          </div>
+          <div class="cal-dias-nombre">
+            <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+
+        <p class="paso-titulo"><span class="num">2</span> Turno</p>
+        <div class="field">
+          <label>Turno<span class="req">*</span></label>
+          <select id="turno" name="turno" required disabled>
+            <option value="">Elige primero el día…</option>
+          </select>
+          <p class="nota-grande">TURNOS DE 1,5 HS</p>
+        </div>
+
+        <p class="paso-titulo"><span class="num">3</span> Comensales</p>
+        <div class="field">
+          <label>Personas<span class="req">*</span></label>
+          <select id="personas" name="personas" required>
+            <option value="">Elegir…</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option><option>9</option>
+          </select>
+          <p class="nota">Para reservas de más de 9 personas, por favor escríbenos por WhatsApp o llámanos al 611 12 17 71.</p>
+        </div>
+
+        <p class="paso-titulo"><span class="num">4</span> Tus datos</p>
+        <div class="field">
+          <label for="nombre">Nombre y apellido<span class="req">*</span></label>
+          <input type="text" id="nombre" name="nombre" placeholder="Nombre y apellido" required>
+        </div>
+        <div class="field">
+          <label>Móvil<span class="req">*</span></label>
+          <div class="telefono-row">
+            <select id="prefijo" name="prefijo">
+              <option value="+34" selected>🇪🇸 +34</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+54">🇦🇷 +54</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+56">🇨🇱 +56</option>
+              <option value="+57">🇨🇴 +57</option>
+              <option value="+58">🇻🇪 +58</option>
+              <option value="+591">🇧🇴 +591</option>
+              <option value="+593">🇪🇨 +593</option>
+              <option value="+595">🇵🇾 +595</option>
+              <option value="+598">🇺🇾 +598</option>
+              <option value="+51">🇵🇪 +51</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+351">🇵🇹 +351</option>
+            </select>
+            <input type="tel" id="telefono" name="telefono" placeholder="600 000 000" required>
+          </div>
+        </div>
+
+        <p class="paso-titulo"><span class="num">5</span> Comentarios</p>
+        <div class="field">
+          <textarea id="comentarios" name="comentarios" aria-label="Comentarios"></textarea>
+        </div>
+
+        <!-- Resumen dentro del formulario: solo visible en móvil, justo antes del botón -->
+        <div class="resumen-mobile" id="resumen-mobile">
+          <p class="resumen-vacio" style="text-align:center;">Aún no has elegido nada.</p>
+        </div>
+
+        <div class="field checkbox-field">
+          <label>
+            <input type="checkbox" id="acepto" required>
+            <span>Acepto la política de privacidad y el tratamiento de mis datos para gestionar esta reserva.</span>
+          </label>
+        </div>
+
+        <p class="aviso-whatsapp">Te confirmaremos la reserva por WhatsApp</p>
+        <button type="submit" class="enviar" id="submit-btn">Confirmar reserva</button>
+        <p class="status" id="status"></p>
+      </form>
+
+      <div class="pantalla-confirmacion" id="pantalla-confirmacion">
+        <div class="caja-blanca">
+          <img src="logo_buenasysantas.jpg" alt="Buenas y Santas" onerror="this.style.display='none'; document.getElementById('logo-fallback-conf').style.display='block';">
+          <div class="logo-fallback-conf" id="logo-fallback-conf" style="display:none;">BUENAS Y SANTAS</div>
+          <p class="mensaje">Reserva solicitada.<br>Te confirmaremos por WhatsApp.</p>
+          <button type="button" class="otra-reserva" onclick="hacerOtraReserva()">Hacer otra reserva</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="resumen-desktop" id="resumen-desktop">
+    <p class="resumen-titulo">Tu reserva</p>
+    <div id="resumen-contenido-desktop">
+      <p class="resumen-vacio">Aún no has elegido nada.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydvHHSs6IiIQTcbIhMGvCgUyGU9SLK8vOERQFXAiski4bwMbIdZJ-cGd3Bx5gTOAxy-g/exec";
+  const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  const form = document.getElementById('reserva-form');
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('submit-btn');
+  const turnoEl = document.getElementById('turno');
+  const personasEl = document.getElementById('personas');
+  const resumenDesktopEl = document.getElementById('resumen-contenido-desktop');
+  const resumenMobileEl = document.getElementById('resumen-mobile');
+
+  let turnosCache = [];
+  let fechaSeleccionada = null;
+  let mesVista = new Date();
+  mesVista.setDate(1);
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function toISO(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+  function renderCalendario() {
+    document.getElementById('cal-mes').textContent = `${MESES[mesVista.getMonth()]} ${mesVista.getFullYear()}`;
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+
+    const primerDia = new Date(mesVista.getFullYear(), mesVista.getMonth(), 1);
+    let offset = primerDia.getDay() - 1;
+    if (offset < 0) offset = 6;
+
+    const diasEnMes = new Date(mesVista.getFullYear(), mesVista.getMonth() + 1, 0).getDate();
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    for (let i = 0; i < offset; i++) {
+      const vacio = document.createElement('div');
+      vacio.className = 'cal-dia vacio';
+      grid.appendChild(vacio);
+    }
+
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const fecha = new Date(mesVista.getFullYear(), mesVista.getMonth(), dia);
+      const celda = document.createElement('div');
+      celda.className = 'cal-dia';
+      celda.textContent = dia;
+
+      if (fecha < hoy) {
+        celda.classList.add('deshabilitado');
+      } else {
+        if (fechaSeleccionada && toISO(fecha) === toISO(fechaSeleccionada)) {
+          celda.classList.add('seleccionado');
+        }
+        celda.addEventListener('click', () => seleccionarFecha(fecha));
+      }
+      grid.appendChild(celda);
+    }
+  }
+
+  function cambiarMes(delta) {
+    mesVista.setMonth(mesVista.getMonth() + delta);
+    renderCalendario();
+  }
+
+  function seleccionarFecha(fecha) {
+    fechaSeleccionada = fecha;
+    renderCalendario();
+    cargarTurnos();
+    actualizarResumen();
+  }
+
+  renderCalendario();
+
+  async function cargarTurnos() {
+    turnoEl.disabled = true;
+    turnoEl.innerHTML = '<option value="">Cargando…</option>';
+
+    if (APPS_SCRIPT_URL.includes('PEGA_AQUI')) {
+      turnoEl.innerHTML = '<option value="">Falta configurar APPS_SCRIPT_URL</option>';
+      return;
+    }
+
+    const fechaISO = toISO(fechaSeleccionada);
+    const diaSemanaTexto = DIAS_SEMANA[fechaSeleccionada.getDay()];
+
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=turnos&fecha=${fechaISO}`);
+      const result = await res.json();
+      turnosCache = result.ok ? result.turnos : [];
+
+      if (!turnosCache.length) {
+        turnoEl.innerHTML = '<option value="">No hay turnos disponibles ese día</option>';
+        return;
+      }
+
+      turnoEl.innerHTML = '<option value="">Elegir…</option>' + turnosCache.map(t =>
+        `<option value="${t.id}">${t.nombre} (${t.hora_inicio}–${t.hora_fin}) · ${diaSemanaTexto} · ${t.plazas_restantes} plazas</option>`
+      ).join('');
+      turnoEl.disabled = false;
+    } catch (err) {
+      turnoEl.innerHTML = '<option value="">Error al cargar turnos</option>';
+    }
+  }
+
+  turnoEl.addEventListener('change', actualizarResumen);
+  ['nombre','telefono','prefijo','personas','comentarios'].forEach(id => {
+    document.getElementById(id).addEventListener('input', actualizarResumen);
+  });
+
+  function actualizarResumen() {
+    const items = [];
+    const t = turnosCache.find(t => String(t.id) === turnoEl.value);
+    if (t) items.push(['Turno', `${t.nombre} (${t.hora_inicio}–${t.hora_fin})`]);
+    if (personasEl.value) items.push(['Personas', personasEl.value]);
+    if (form.nombre.value.trim()) items.push(['Nombre', form.nombre.value.trim()]);
+    if (form.telefono.value.trim()) items.push(['Móvil', `${form.prefijo.value} ${form.telefono.value.trim()}`]);
+    if (form.comentarios.value.trim()) items.push(['Notas', form.comentarios.value.trim()]);
+
+    const listaHtml = items.length
+      ? items.map(([k,v]) => `<div class="resumen-item"><span>${k}</span><span>${v}</span></div>`).join('')
+      : '<p class="resumen-vacio">Aún no has elegido nada.</p>';
+
+    resumenDesktopEl.innerHTML = (fechaSeleccionada
+      ? `<div class="resumen-item"><span>Fecha</span><span>${DIAS_SEMANA[fechaSeleccionada.getDay()]}, ${fechaSeleccionada.getDate()} ${MESES[fechaSeleccionada.getMonth()]}</span></div>`
+      : '') + listaHtml;
+
+    if (fechaSeleccionada) {
+      const diaSemanaTexto = DIAS_SEMANA[fechaSeleccionada.getDay()];
+      resumenMobileEl.innerHTML =
+        `<div class="dia-grande">${diaSemanaTexto}</div>` +
+        `<div class="fecha-sub">${fechaSeleccionada.getDate()} de ${MESES[fechaSeleccionada.getMonth()]}</div>` +
+        listaHtml;
+    } else {
+      resumenMobileEl.innerHTML = '<p class="resumen-vacio" style="text-align:center;">Aún no has elegido nada.</p>';
+    }
+  }
+
+  function hacerOtraReserva() {
+    form.reset();
+    form.prefijo.value = '+34';
+    fechaSeleccionada = null;
+    renderCalendario();
+    turnoEl.innerHTML = '<option value="">Elige primero el día…</option>';
+    turnoEl.disabled = true;
+    actualizarResumen();
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+    document.getElementById('pantalla-confirmacion').style.display = 'none';
+    document.getElementById('reserva-form').style.display = 'block';
+    const resumenDesktop = document.getElementById('resumen-desktop');
+    if (resumenDesktop) resumenDesktop.style.display = '';
+  }
+
+  function telefonoValido(numero) {
+    const limpio = numero.replace(/\s+/g, '');
+    return /^[67]\d{8}$/.test(limpio);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+
+    if (!fechaSeleccionada) {
+      statusEl.textContent = 'Elige un día en el calendario.';
+      statusEl.className = 'status err';
+      return;
+    }
+
+    const numeroLimpio = form.telefono.value.trim();
+    if (form.prefijo.value === '+34' && !telefonoValido(numeroLimpio)) {
+      statusEl.textContent = 'Revisa el móvil: debe empezar por 6 o 7 y tener 9 dígitos.';
+      statusEl.className = 'status err';
+      return;
+    }
+
+    if (!document.getElementById('acepto').checked) {
+      statusEl.textContent = 'Debes aceptar la política de privacidad para continuar.';
+      statusEl.className = 'status err';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+
+    const data = {
+      action: 'reservar',
+      nombre: form.nombre.value.trim(),
+      telefono: form.prefijo.value + ' ' + numeroLimpio,
+      fecha: toISO(fechaSeleccionada),
+      turno_id: form.turno.value,
+      personas: form.personas.value,
+      comentarios: form.comentarios.value.trim()
+    };
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (result.ok) {
+        document.getElementById('reserva-form').style.display = 'none';
+        const resumenDesktop = document.getElementById('resumen-desktop');
+        if (resumenDesktop) resumenDesktop.style.display = 'none';
+        document.getElementById('pantalla-confirmacion').style.display = 'flex';
+      } else {
+        throw new Error(result.error || 'unknown');
+      }
+    } catch (err) {
+      statusEl.textContent = err.message && err.message !== 'unknown' ? err.message : 'No se pudo enviar la reserva.';
+      statusEl.classList.add('err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Confirmar reserva';
+    }
+  });
+</script>
+</body>
+</html>

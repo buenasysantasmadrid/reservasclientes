@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Buenas y Santas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Nunito:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde: #33481F; --verde-2: #3F5A2E; --oro: #E3A857;
+    --texto: #23281E; --linea: rgba(35,40,30,0.15); --pastel: #E7F0DE;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--pastel); color:var(--texto); font-family:'Nunito', sans-serif; padding:32px 16px 80px; }
+  .layout{ max-width:720px; margin:0 auto; }
+  .marco{ border:3px solid var(--verde); border-radius:10px; overflow:hidden; background:#fff; }
+  .cabecera{ background:var(--verde); padding:20px 24px; text-align:center; }
+  .logo-plate{ display:inline-block; background:#fff; padding:8px 18px; border-radius:4px; margin-bottom:8px; }
+  .logo-plate img{ max-height:42px; width:auto; display:block; }
+  h1{ font-family:'Playfair Display', serif; font-weight:700; color:#fff; font-size:22px; margin:0; }
+
+  .tabs{ display:flex; border-bottom:2px solid var(--linea); }
+  .tab-btn{
+    flex:1; background:none; border:none; padding:14px; font-family:'Nunito', sans-serif; font-weight:700;
+    font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--verde-2); cursor:pointer;
+    border-bottom:3px solid transparent; opacity:.6;
+  }
+  .tab-btn.activa{ opacity:1; border-bottom-color:var(--verde); color:var(--verde); }
+
+  .card-body{ padding:28px 26px 32px; }
+  h2{ font-family:'Playfair Display', serif; font-size:19px; color:var(--verde); margin:0 0 4px; }
+  .sub{ color:var(--verde-2); font-size:13px; font-style:italic; margin:0 0 18px; }
+
+  .calendario{ border:1px solid var(--linea); border-radius:6px; padding:16px; margin-bottom:20px; }
+  .cal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .cal-header button{ background:none; border:1px solid var(--linea); color:var(--texto); width:30px; height:30px; border-radius:4px; cursor:pointer; font-size:14px; }
+  .cal-header button:hover{ border-color:var(--verde); color:var(--verde); }
+  .cal-mes{ font-family:'Playfair Display', serif; font-size:16px; text-transform:capitalize; }
+  .cal-dias-nombre{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11px; color:var(--verde); margin-bottom:6px; font-weight:700; }
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+  .cal-dia{ aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:4px; font-size:13px; cursor:pointer; border:1px solid transparent; }
+  .cal-dia:hover:not(.deshabilitado){ border-color:var(--verde); }
+  .cal-dia.vacio{ visibility:hidden; }
+  .cal-dia.deshabilitado{ color:rgba(35,40,30,0.25); cursor:default; }
+  .cal-dia.seleccionado{ background:var(--verde); color:#fff; }
+
+  .lista-turnos-cierre{ border:1px solid var(--linea); border-radius:6px; padding:16px; margin-bottom:16px; }
+  .turno-check{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dotted var(--linea); font-size:14px; }
+  .turno-check:last-child{ border-bottom:none; }
+  .turno-check input{ width:18px; height:18px; accent-color:var(--verde); flex-shrink:0; }
+  .todo-el-dia{ display:flex; align-items:center; gap:10px; padding:10px 0 14px; border-bottom:2px solid var(--linea); margin-bottom:10px; font-weight:700; color:var(--verde); }
+  .todo-el-dia input{ width:18px; height:18px; accent-color:var(--verde); }
+  .vacio-turnos{ color:var(--verde-2); font-style:italic; font-size:13px; }
+
+  button.primario{
+    background:var(--verde); color:#fff; border:1px solid var(--verde); padding:12px 20px;
+    font-family:'Nunito', sans-serif; font-weight:700; font-size:14px; letter-spacing:.04em;
+    text-transform:uppercase; cursor:pointer; border-radius:4px; width:100%;
+  }
+  button.primario:hover{ background:#26350f; }
+  button.secundario{ background:none; border:1px solid var(--linea); color:var(--texto); padding:6px 12px; font-size:12px; border-radius:4px; cursor:pointer; }
+  button.secundario:hover{ border-color:var(--verde); color:var(--verde); }
+
+  label{ display:block; font-size:12px; letter-spacing:.05em; color:var(--verde); margin-bottom:6px; font-weight:700; text-transform:uppercase; }
+  input, select{
+    width:100%; background:transparent; border:none; border-bottom:1px solid var(--linea); color:var(--texto);
+    font-family:'Nunito', sans-serif; font-size:15px; padding:6px 2px 8px; outline:none;
+  }
+  input:focus, select:focus{ border-bottom-color:var(--verde); }
+
+  table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+  th, td{ text-align:left; padding:9px 6px; border-bottom:1px solid var(--linea); }
+  th{ color:var(--verde); font-size:11px; letter-spacing:.04em; text-transform:uppercase; }
+  .dias-tags{ display:flex; gap:4px; flex-wrap:wrap; }
+  .dias-tags span{ border:1px solid var(--linea); border-radius:2px; padding:1px 5px; font-size:10px; color:var(--verde-2); }
+
+  .form-grid{ display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:14px; align-items:end; margin-bottom:10px; }
+  .dias-check{ display:flex; gap:6px; flex-wrap:wrap; font-size:12px; margin-bottom:14px; }
+  .dias-check label{ display:flex; align-items:center; gap:4px; text-transform:none; font-weight:400; color:var(--texto); }
+  .dias-check input{ width:auto; }
+
+  .status{ font-size:13px; min-height:18px; margin:10px 0; font-weight:700; }
+  .status.ok{ color:var(--verde); }
+  .status.err{ color:#A63B3B; }
+
+  @media (max-width:600px){ .form-grid{ grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="marco">
+    <div class="cabecera">
+      <div class="logo-plate">
+        <img src="logo_buenasysantas.jpg" alt="Buenas y Santas">
+      </div>
+      <h1>Panel de turnos</h1>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn activa" id="tab-cierres" onclick="mostrarVista('cierres')">Cerrar turnos</button>
+      <button class="tab-btn" id="tab-turnos" onclick="mostrarVista('turnos')">Definir turnos</button>
+    </div>
+
+    <div class="card-body">
+
+      <!-- VISTA: CIERRES (por defecto) -->
+      <div id="vista-cierres">
+        <h2>Cerrar turnos</h2>
+        <p class="sub">Toca un día en el calendario para ver sus turnos y cerrar los que necesites.</p>
+
+        <div class="calendario">
+          <div class="cal-header">
+            <button type="button" onclick="cambiarMes(-1)">‹</button>
+            <span class="cal-mes" id="cal-mes"></span>
+            <button type="button" onclick="cambiarMes(1)">›</button>
+          </div>
+          <div class="cal-dias-nombre"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+
+        <div id="turnos-del-dia-wrap" style="display:none;">
+          <label id="fecha-elegida-label"></label>
+          <div class="lista-turnos-cierre">
+            <div class="todo-el-dia">
+              <input type="checkbox" id="cerrar-todo-dia" onchange="toggleTodoElDia()">
+              <label for="cerrar-todo-dia" style="margin:0; text-transform:none; font-weight:700;">Cerrar todo el día</label>
+            </div>
+            <div id="checks-turnos"></div>
+          </div>
+          <button class="primario" onclick="guardarCierres()">Guardar</button>
+          <p class="status" id="cierre-status"></p>
+        </div>
+
+        <h2 style="margin-top:32px;">Cierres programados</h2>
+        <table>
+          <thead><tr><th>Fecha</th><th>Turno</th><th></th></tr></thead>
+          <tbody id="tabla-cierres-body"></tbody>
+        </table>
+      </div>
+
+      <!-- VISTA: TURNOS -->
+      <div id="vista-turnos" style="display:none;">
+        <h2>Definir turnos</h2>
+        <p class="sub">Turnos recurrentes: nombre, horario, días activos y capacidad máxima de comensales.</p>
+
+        <div class="form-grid">
+          <div><label>Nombre</label><input type="text" id="t-nombre" placeholder="Comida"></div>
+          <div><label>Hora inicio</label><input type="time" id="t-inicio"></div>
+          <div><label>Hora fin</label><input type="time" id="t-fin"></div>
+          <div><label>Capacidad</label><input type="number" id="t-capacidad" min="1" placeholder="40"></div>
+        </div>
+        <label>Días activos</label>
+        <div class="dias-check" id="dias-check"></div>
+        <button class="primario" onclick="guardarTurno()" id="btn-guardar-turno">Añadir turno</button>
+        <button class="secundario" onclick="cancelarEdicion()" id="btn-cancelar" style="display:none; margin-top:8px;">Cancelar edición</button>
+        <p class="status" id="turno-status"></p>
+
+        <table>
+          <thead><tr><th>Nombre</th><th>Horario</th><th>Días</th><th>Cap.</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="tabla-turnos-body"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydvHHSs6IiIQTcbIhMGvCgUyGU9SLK8vOERQFXAiski4bwMbIdZJ-cGd3Bx5gTOAxy-g/exec";
+  const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  let turnos = [];
+  let cierres = [];
+  let editandoId = null;
+  let fechaSeleccionada = null;
+  let mesVista = new Date();
+  mesVista.setDate(1);
+
+  document.getElementById('dias-check').innerHTML = DIAS.map((d, i) =>
+    `<label><input type="checkbox" value="${i}" checked> ${d}</label>`
+  ).join('');
+
+  function mostrarVista(nombre) {
+    document.getElementById('vista-cierres').style.display = nombre === 'cierres' ? 'block' : 'none';
+    document.getElementById('vista-turnos').style.display = nombre === 'turnos' ? 'block' : 'none';
+    document.getElementById('tab-cierres').classList.toggle('activa', nombre === 'cierres');
+    document.getElementById('tab-turnos').classList.toggle('activa', nombre === 'turnos');
+  }
+
+  async function llamar(action, extra) {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, ...extra })
+    });
+    return res.json();
+  }
+
+  async function cargarTodo() {
+    if (APPS_SCRIPT_URL.includes('PEGA_AQUI')) {
+      document.getElementById('tabla-cierres-body').innerHTML = '<tr><td colspan="3">Falta configurar APPS_SCRIPT_URL en admin.html</td></tr>';
+      return;
+    }
+    const result = await llamar('admin_get_all', {});
+    if (result.ok) {
+      turnos = result.turnos;
+      cierres = result.cierres;
+      renderTablaCierres();
+      renderTablaTurnos();
+      if (fechaSeleccionada) renderTurnosDelDia();
+    }
+  }
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function toISO(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+
+  function renderCalendario() {
+    document.getElementById('cal-mes').textContent = `${MESES[mesVista.getMonth()]} ${mesVista.getFullYear()}`;
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+    const primerDia = new Date(mesVista.getFullYear(), mesVista.getMonth(), 1);
+    let offset = primerDia.getDay() - 1;
+    if (offset < 0) offset = 6;
+    const diasEnMes = new Date(mesVista.getFullYear(), mesVista.getMonth() + 1, 0).getDate();
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+    for (let i = 0; i < offset; i++) {
+      const vacio = document.createElement('div');
+      vacio.className = 'cal-dia vacio';
+      grid.appendChild(vacio);
+    }
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const fecha = new Date(mesVista.getFullYear(), mesVista.getMonth(), dia);
+      const celda = document.createElement('div');
+      celda.className = 'cal-dia';
+      celda.textContent = dia;
+      if (fecha < hoy) {
+        celda.classList.add('deshabilitado');
+      } else {
+        if (fechaSeleccionada && toISO(fecha) === toISO(fechaSeleccionada)) celda.classList.add('seleccionado');
+        celda.addEventListener('click', () => seleccionarFecha(fecha));
+      }
+      grid.appendChild(celda);
+    }
+  }
+
+  function cambiarMes(delta) {
+    mesVista.setMonth(mesVista.getMonth() + delta);
+    renderCalendario();
+  }
+
+  function seleccionarFecha(fecha) {
+    fechaSeleccionada = fecha;
+    renderCalendario();
+    renderTurnosDelDia();
+  }
+
+  renderCalendario();
+
+  function renderTurnosDelDia() {
+    const wrap = document.getElementById('turnos-del-dia-wrap');
+    wrap.style.display = 'block';
+
+    const diaSemana = fechaSeleccionada.getDay();
+    const fechaISO = toISO(fechaSeleccionada);
+    document.getElementById('fecha-elegida-label').textContent =
+      `${DIAS[diaSemana]} ${fechaSeleccionada.getDate()} de ${MESES[fechaSeleccionada.getMonth()]}`;
+
+    const turnosDelDia = turnos.filter(t => {
+      if (!(t.activo === true || t.activo === 'true')) return false;
+      return String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
+    });
+
+    const cerradosHoy = cierres.filter(c => c.fecha === fechaISO).map(c => String(c.turno_id));
+
+    const checksDiv = document.getElementById('checks-turnos');
+    if (!turnosDelDia.length) {
+      checksDiv.innerHTML = '<p class="vacio-turnos">No hay turnos definidos para este día de la semana.</p>';
+      document.getElementById('cerrar-todo-dia').disabled = true;
+      return;
+    }
+    document.getElementById('cerrar-todo-dia').disabled = false;
+
+    checksDiv.innerHTML = turnosDelDia.map(t => `
+      <div class="turno-check">
+        <input type="checkbox" class="check-turno" value="${t.id}" ${cerradosHoy.includes(String(t.id)) ? 'checked' : ''}>
+        <span>${t.nombre} (${t.hora_inicio}–${t.hora_fin})</span>
+      </div>
+    `).join('');
+
+    const todosCerrados = turnosDelDia.every(t => cerradosHoy.includes(String(t.id)));
+    document.getElementById('cerrar-todo-dia').checked = todosCerrados;
+  }
+
+  function toggleTodoElDia() {
+    const marcado = document.getElementById('cerrar-todo-dia').checked;
+    document.querySelectorAll('.check-turno').forEach(cb => cb.checked = marcado);
+  }
+
+  async function guardarCierres() {
+    const status = document.getElementById('cierre-status');
+    status.textContent = 'Guardando…';
+    status.className = 'status';
+
+    const fechaISO = toISO(fechaSeleccionada);
+    const cerradosHoyAntes = cierres.filter(c => c.fecha === fechaISO).map(c => String(c.turno_id));
+    const checks = document.querySelectorAll('.check-turno');
+
+    for (const cb of checks) {
+      const turnoId = cb.value;
+      const yaCerrado = cerradosHoyAntes.includes(String(turnoId));
+      if (cb.checked && !yaCerrado) {
+        await llamar('admin_cerrar_turno', { fecha: fechaISO, turno_id: turnoId });
+      } else if (!cb.checked && yaCerrado) {
+        await llamar('admin_reabrir_turno', { fecha: fechaISO, turno_id: turnoId });
+      }
+    }
+
+    const result = await llamar('admin_get_all', {});
+    if (result.ok) {
+      turnos = result.turnos;
+      cierres = result.cierres;
+      renderTablaCierres();
+      renderTurnosDelDia();
+    }
+    status.textContent = 'Cierres guardados.';
+    status.className = 'status ok';
+  }
+
+  function renderTablaCierres() {
+    const tbody = document.getElementById('tabla-cierres-body');
+    if (!cierres.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="color:var(--verde-2); font-style:italic;">No hay cierres programados.</td></tr>';
+      return;
+    }
+    const ordenados = [...cierres].sort((a,b) => a.fecha.localeCompare(b.fecha));
+    tbody.innerHTML = ordenados.map(c => {
+      const t = turnos.find(t => String(t.id) === String(c.turno_id));
+      return `<tr>
+        <td>${c.fecha}</td>
+        <td>${t ? t.nombre : c.turno_id}</td>
+        <td><button class="secundario" onclick="eliminarCierre('${c.fecha}','${c.turno_id}')">Eliminar</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function eliminarCierre(fecha, turnoId) {
+    await llamar('admin_reabrir_turno', { fecha, turno_id: turnoId });
+    cierres = cierres.filter(c => !(c.fecha === fecha && String(c.turno_id) === String(turnoId)));
+    renderTablaCierres();
+    if (fechaSeleccionada && toISO(fechaSeleccionada) === fecha) renderTurnosDelDia();
+  }
+
+  function renderTablaTurnos() {
+    const tbody = document.getElementById('tabla-turnos-body');
+    tbody.innerHTML = turnos.map(t => `
+      <tr>
+        <td>${t.nombre}</td>
+        <td>${t.hora_inicio}–${t.hora_fin}</td>
+        <td><div class="dias-tags">${String(t.dias).split(',').map(d => `<span>${DIAS[Number(d)]}</span>`).join('')}</div></td>
+        <td>${t.capacidad_max}</td>
+        <td>${(t.activo === true || t.activo === 'true') ? 'Sí' : 'No'}</td>
+        <td>
+          <button class="secundario" onclick="editarTurno('${t.id}')">Editar</button>
+          <button class="secundario" onclick="eliminarTurno('${t.id}')">Eliminar</button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="color:var(--verde-2); font-style:italic;">Aún no hay turnos.</td></tr>';
+  }
+
+  async function guardarTurno() {
+    const nombre = document.getElementById('t-nombre').value.trim();
+    const inicio = document.getElementById('t-inicio').value;
+    const fin = document.getElementById('t-fin').value;
+    const capacidad = document.getElementById('t-capacidad').value;
+    const dias = Array.from(document.querySelectorAll('#dias-check input:checked')).map(i => i.value).join(',');
+    const status = document.getElementById('turno-status');
+
+    if (!nombre || !inicio || !fin || !capacidad || !dias) {
+      status.textContent = 'Rellena todos los campos y elige al menos un día.';
+      status.className = 'status err';
+      return;
+    }
+
+    const turno = { id: editandoId, nombre, hora_inicio: inicio, hora_fin: fin, capacidad_max: capacidad, dias, activo: true };
+    const result = await llamar('admin_save_turno', { turno });
+    if (result.ok) {
+      status.textContent = editandoId ? 'Turno actualizado.' : 'Turno añadido.';
+      status.className = 'status ok';
+      cancelarEdicion();
+      await cargarTodo();
+    } else {
+      status.textContent = result.error;
+      status.className = 'status err';
+    }
+  }
+
+  function editarTurno(id) {
+    const t = turnos.find(t => String(t.id) === String(id));
+    if (!t) return;
+    editandoId = id;
+    document.getElementById('t-nombre').value = t.nombre;
+    document.getElementById('t-inicio').value = t.hora_inicio;
+    document.getElementById('t-fin').value = t.hora_fin;
+    document.getElementById('t-capacidad').value = t.capacidad_max;
+    const dias = String(t.dias).split(',');
+    document.querySelectorAll('#dias-check input').forEach(cb => cb.checked = dias.includes(cb.value));
+    document.getElementById('btn-guardar-turno').textContent = 'Guardar cambios';
+    document.getElementById('btn-cancelar').style.display = 'inline-block';
+  }
+
+  function cancelarEdicion() {
+    editandoId = null;
+    document.getElementById('t-nombre').value = '';
+    document.getElementById('t-inicio').value = '';
+    document.getElementById('t-fin').value = '';
+    document.getElementById('t-capacidad').value = '';
+    document.querySelectorAll('#dias-check input').forEach(cb => cb.checked = true);
+    document.getElementById('btn-guardar-turno').textContent = 'Añadir turno';
+    document.getElementById('btn-cancelar').style.display = 'none';
+  }
+
+  async function eliminarTurno(id) {
+    if (!confirm('¿Eliminar este turno? Las reservas ya hechas no se borran.')) return;
+    const result = await llamar('admin_delete_turno', { id });
+    if (result.ok) {
+      turnos = turnos.filter(t => String(t.id) !== String(id));
+      renderTablaTurnos();
+    }
+  }
+
+  cargarTodo();
+</script>
+</body>
+</html>
