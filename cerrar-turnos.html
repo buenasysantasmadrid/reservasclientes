@@ -85,37 +85,11 @@
   .status.err{ color:#A63B3B; }
 
   @media (max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
-
-  .login-gate{
-    max-width:400px; margin:80px auto; text-align:center; border:1px solid var(--linea);
-    border-radius:10px; padding:40px 28px; background:#fff;
-  }
-  .login-gate .logo-plate{ display:inline-block; background:#fff; padding:8px 18px; border-radius:4px; margin-bottom:18px; border:1px solid var(--linea); }
-  .login-gate .logo-plate img{ max-height:42px; width:auto; display:block; }
-  .login-gate h1{ font-family:'Playfair Display', serif; font-size:19px; color:var(--verde); margin:0 0 8px; }
-  .login-gate p{ color:var(--verde-2); font-size:13px; margin:0 0 20px; }
-  .login-gate .g_id_signin{ display:flex; justify-content:center; }
-  .login-error{ color:#A63B3B; font-size:13px; margin-top:14px; min-height:18px; }
 </style>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
-<div class="login-gate" id="login-gate">
-  <div class="logo-plate">
-    <img src="logo_buenasysantas.jpg" alt="Buenas y Santas">
-  </div>
-  <h1>Panel de turnos</h1>
-  <p>Acceso solo con la cuenta de Google del restaurante.</p>
-  <div id="g_id_onload"
-       data-client_id="TU_CLIENT_ID.apps.googleusercontent.com"
-       data-callback="handleCredentialResponse">
-  </div>
-  <div class="g_id_signin" data-type="standard" data-theme="outline" data-text="signin_with"></div>
-  <p class="login-error" id="login-error"></p>
-</div>
-
-<div class="layout" id="panel-principal" style="display:none;">
+<div class="layout" id="panel-principal">
   <div class="marco">
     <div class="cabecera">
       <div class="logo-plate">
@@ -237,29 +211,6 @@
   const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-
-  const EMAILS_PERMITIDOS = [
-    "buenasysantasmadrid@gmail.com",
-    "buenasysantas9@gmail.com"
-  ];
-
-  function decodificarJWT(token) {
-    const payload = token.split('.')[1];
-    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-  }
-
-  function handleCredentialResponse(response) {
-    const datos = decodificarJWT(response.credential);
-    const errorEl = document.getElementById('login-error');
-    if (!EMAILS_PERMITIDOS.includes(datos.email) || !datos.email_verified) {
-      errorEl.textContent = 'Esta cuenta de Google no tiene acceso a este panel.';
-      return;
-    }
-    errorEl.textContent = '';
-    document.getElementById('login-gate').style.display = 'none';
-    document.getElementById('panel-principal').style.display = 'block';
-    cargarTodo();
-  }
 
   let turnos = [];
   let cierres = [];
@@ -543,8 +494,7 @@
     }
   }
 
-  // La carga inicial ahora se dispara desde handleCredentialResponse(),
-  // recién después de validar el email de Google.
+  cargarTodo();
 </script>
 </body>
 </html>
