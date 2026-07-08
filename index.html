@@ -328,7 +328,30 @@
 </div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydvHHSs6IiIQTcbIhMGvCgUyGU9SLK8vOERQFXAiski4bwMbIdZJ-cGd3Bx5gTOAxy-g/exec";
+  const SUPABASE_URL = "https://tlfyjbwqcolwiwvvrrze.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_08GcJ_BFM1rqQbA0pbpYuQ_a3daf8Hj";
+
+  async function supaGet(path) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) throw new Error('Error al consultar Supabase');
+    return res.json();
+  }
+
+  async function supaPost(path, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'return=representation'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
@@ -402,17 +425,19 @@
     turnoEl.disabled = true;
     turnoEl.innerHTML = '<option value="">Cargando…</option>';
 
-    if (APPS_SCRIPT_URL.includes('PEGA_AQUI')) {
-      turnoEl.innerHTML = '<option value="">Falta configurar APPS_SCRIPT_URL</option>';
-      return;
-    }
-
     const fechaISO = toISO(fechaSeleccionada);
+    const diaSemana = fechaSeleccionada.getDay();
 
     try {
-      const res = await fetch(`${APPS_SCRIPT_URL}?action=turnos&fecha=${fechaISO}`);
-      const result = await res.json();
-      turnosCache = result.ok ? result.turnos : [];
+      const [turnosData, cierresData] = await Promise.all([
+        supaGet('turnos?activo=eq.true&select=id,nombre,dias,hora_inicio,hora_fin'),
+        supaGet(`cierres?fecha=eq.${fechaISO}&select=hora`)
+      ]);
+      const horasCerradas = cierresData.map(c => c.hora);
+      turnosCache = turnosData.filter(t =>
+        String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana)) &&
+        !horasCerradas.includes(t.hora_inicio)
+      );
 
       if (!turnosCache.length) {
         turnoEl.innerHTML = '<option value="">No hay turnos disponibles ese día</option>';
@@ -510,34 +535,27 @@
     btn.disabled = true;
     btn.textContent = 'Enviando…';
 
-    const data = {
-      action: 'reservar',
+    const turnoSeleccionado = turnosCache.find(t => String(t.id) === form.turno.value);
+    const fechaISO = toISO(fechaSeleccionada);
+    const fechaHora = `${fechaISO}T${turnoSeleccionado.hora_inicio}:00`;
+
+    const payload = {
       nombre: form.nombre.value.trim(),
-      email: form.email.value.trim(),
       telefono: form.prefijo.value.replace('+', '') + numeroLimpio,
-      fecha: toISO(fechaSeleccionada),
-      turno_id: form.turno.value,
-      personas: form.personas.value,
-      comentarios: form.comentarios.value.trim()
+      fecha: fechaHora,
+      pax: Number(form.personas.value),
+      comentarios: form.comentarios.value.trim() || null,
+      mail: form.email.value.trim()
     };
 
     try {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(data)
-      });
-      const result = await res.json();
-      if (result.ok) {
-        document.getElementById('reserva-form').style.display = 'none';
-        const resumenDesktop = document.getElementById('resumen-desktop');
-        if (resumenDesktop) resumenDesktop.style.display = 'none';
-        document.getElementById('pantalla-confirmacion').style.display = 'flex';
-      } else {
-        throw new Error(result.error || 'unknown');
-      }
+      await supaPost('reservas', payload);
+      document.getElementById('reserva-form').style.display = 'none';
+      const resumenDesktop = document.getElementById('resumen-desktop');
+      if (resumenDesktop) resumenDesktop.style.display = 'none';
+      document.getElementById('pantalla-confirmacion').style.display = 'flex';
     } catch (err) {
-      statusEl.textContent = err.message && err.message !== 'unknown' ? err.message : 'No se pudo enviar la reserva.';
+      statusEl.textContent = 'No se pudo enviar la reserva. Probá de nuevo en un momento.';
       statusEl.classList.add('err');
     } finally {
       btn.disabled = false;
