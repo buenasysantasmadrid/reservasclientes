@@ -408,7 +408,6 @@
     }
 
     const fechaISO = toISO(fechaSeleccionada);
-    const diaSemanaTexto = DIAS_SEMANA[fechaSeleccionada.getDay()];
 
     try {
       const res = await fetch(`${APPS_SCRIPT_URL}?action=turnos&fecha=${fechaISO}`);
@@ -421,7 +420,7 @@
       }
 
       turnoEl.innerHTML = '<option value="">Elegir…</option>' + turnosCache.map(t =>
-        `<option value="${t.id}">${t.nombre} (${t.hora_inicio}–${t.hora_fin}) · ${diaSemanaTexto} · ${t.plazas_restantes} plazas</option>`
+        `<option value="${t.id}">${t.hora_inicio} hs</option>`
       ).join('');
       turnoEl.disabled = false;
     } catch (err) {
@@ -437,7 +436,7 @@
   function actualizarResumen() {
     const items = [];
     const t = turnosCache.find(t => String(t.id) === turnoEl.value);
-    if (t) items.push(['Turno', `${t.nombre} (${t.hora_inicio}–${t.hora_fin})`]);
+    if (t) items.push(['Turno', `${t.hora_inicio} hs`]);
     if (personasEl.value) items.push(['Personas', personasEl.value]);
     if (form.nombre.value.trim()) items.push(['Nombre', form.nombre.value.trim()]);
     if (form.email.value.trim()) items.push(['Email', form.email.value.trim()]);
