@@ -284,7 +284,7 @@
       return String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
     });
 
-    const cerradosHoy = cierres.filter(c => c.fecha === fechaISO).map(c => String(c.turno_id));
+    const cerradosHoy = cierres.filter(c => c.Fecha === fechaISO).map(c => c.Turno);
 
     const checksDiv = document.getElementById('checks-turnos');
     if (!turnosDelDia.length) {
@@ -296,12 +296,12 @@
 
     checksDiv.innerHTML = turnosDelDia.map(t => `
       <div class="turno-check">
-        <input type="checkbox" class="check-turno" value="${t.id}" ${cerradosHoy.includes(String(t.id)) ? 'checked' : ''}>
+        <input type="checkbox" class="check-turno" value="${t.hora_inicio}" ${cerradosHoy.includes(t.hora_inicio) ? 'checked' : ''}>
         <span>${t.hora_inicio} hs</span>
       </div>
     `).join('');
 
-    const todosCerrados = turnosDelDia.every(t => cerradosHoy.includes(String(t.id)));
+    const todosCerrados = turnosDelDia.every(t => cerradosHoy.includes(t.hora_inicio));
     document.getElementById('cerrar-todo-dia').checked = todosCerrados;
   }
 
@@ -319,16 +319,16 @@
     btn.textContent = 'Guardando…';
 
     const fechaISO = toISO(fechaSeleccionada);
-    const cerradosHoyAntes = cierres.filter(c => c.fecha === fechaISO).map(c => String(c.turno_id));
+    const cerradosHoyAntes = cierres.filter(c => c.Fecha === fechaISO).map(c => c.Turno);
     const checks = document.querySelectorAll('.check-turno');
 
     for (const cb of checks) {
-      const turnoId = cb.value;
-      const yaCerrado = cerradosHoyAntes.includes(String(turnoId));
+      const hora = cb.value;
+      const yaCerrado = cerradosHoyAntes.includes(hora);
       if (cb.checked && !yaCerrado) {
-        await llamar('admin_cerrar_turno', { fecha: fechaISO, turno_id: turnoId });
+        await llamar('admin_cerrar_turno', { fecha: fechaISO, hora });
       } else if (!cb.checked && yaCerrado) {
-        await llamar('admin_reabrir_turno', { fecha: fechaISO, turno_id: turnoId });
+        await llamar('admin_reabrir_turno', { fecha: fechaISO, hora });
       }
     }
 
@@ -347,14 +347,16 @@
 
   function renderTablaCierres() {
     const tbody = document.getElementById('tabla-cierres-body');
-    if (!cierres.length) {
+    const hoyISO = toISO(new Date());
+    const vigentes = cierres.filter(c => c.Fecha >= hoyISO);
+
+    if (!vigentes.length) {
       tbody.innerHTML = '<tr><td colspan="3" style="color:var(--verde-2); font-style:italic;">No hay cierres programados.</td></tr>';
       return;
     }
-    const ordenados = [...cierres].sort((a,b) => a.fecha.localeCompare(b.fecha));
+    const ordenados = [...vigentes].sort((a,b) => a.Fecha.localeCompare(b.Fecha));
     tbody.innerHTML = ordenados.map(c => {
-      const t = turnos.find(t => String(t.id) === String(c.turno_id));
-      const [anio, mes, dia] = c.fecha.split('-').map(Number);
+      const [anio, mes, dia] = c.Fecha.split('-').map(Number);
       const fechaObj = new Date(anio, mes - 1, dia);
       const nombreDia = DIAS_SEMANA[fechaObj.getDay()];
       return `<tr>
@@ -362,16 +364,16 @@
           <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:16px; color:var(--verde); text-transform:capitalize;">${nombreDia}</div>
           <div style="font-size:12px; color:var(--verde-2);">${dia} de ${MESES[mes - 1]}</div>
         </td>
-        <td>${t ? t.hora_inicio + ' hs' : c.turno_id}</td>
-        <td><button class="secundario" onclick="eliminarCierre('${c.fecha}','${c.turno_id}', this)">Eliminar</button></td>
+        <td>${c.Turno} hs</td>
+        <td><button class="secundario" onclick="eliminarCierre('${c.Fecha}','${c.Turno}', this)">Eliminar</button></td>
       </tr>`;
     }).join('');
   }
 
-  async function eliminarCierre(fecha, turnoId, btn) {
+  async function eliminarCierre(fecha, hora, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
-    await llamar('admin_reabrir_turno', { fecha, turno_id: turnoId });
-    cierres = cierres.filter(c => !(c.fecha === fecha && String(c.turno_id) === String(turnoId)));
+    await llamar('admin_reabrir_turno', { fecha, hora });
+    cierres = cierres.filter(c => !(c.Fecha === fecha && c.Turno === hora));
     renderTablaCierres();
     if (fechaSeleccionada && toISO(fechaSeleccionada) === fecha) renderTurnosDelDia();
   }
