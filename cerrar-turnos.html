@@ -169,6 +169,7 @@
 <script>
   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydvHHSs6IiIQTcbIhMGvCgUyGU9SLK8vOERQFXAiski4bwMbIdZJ-cGd3Bx5gTOAxy-g/exec";
   const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
   let turnos = [];
@@ -338,9 +339,15 @@
     const ordenados = [...cierres].sort((a,b) => a.fecha.localeCompare(b.fecha));
     tbody.innerHTML = ordenados.map(c => {
       const t = turnos.find(t => String(t.id) === String(c.turno_id));
+      const [anio, mes, dia] = c.fecha.split('-').map(Number);
+      const fechaObj = new Date(anio, mes - 1, dia);
+      const nombreDia = DIAS_SEMANA[fechaObj.getDay()];
       return `<tr>
-        <td>${c.fecha}</td>
-        <td>${t ? t.nombre : c.turno_id}</td>
+        <td>
+          <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:16px; color:var(--verde); text-transform:capitalize;">${nombreDia}</div>
+          <div style="font-size:12px; color:var(--verde-2);">${dia} de ${MESES[mes - 1]}</div>
+        </td>
+        <td>${t ? t.hora_inicio + ' hs' : c.turno_id}</td>
         <td><button class="secundario" onclick="eliminarCierre('${c.fecha}','${c.turno_id}')">Eliminar</button></td>
       </tr>`;
     }).join('');
