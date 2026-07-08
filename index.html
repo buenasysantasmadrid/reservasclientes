@@ -445,7 +445,7 @@
           if (h * 60 + m - 5 <= horaActual) return false;
         }
         return true;
-      });
+      }).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
 
       if (!turnosCache.length) {
         turnoEl.innerHTML = '<option value="">No hay turnos disponibles ese día</option>';
