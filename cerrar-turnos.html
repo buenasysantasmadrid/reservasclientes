@@ -165,7 +165,48 @@
 </div>
 
 <script>
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydvHHSs6IiIQTcbIhMGvCgUyGU9SLK8vOERQFXAiski4bwMbIdZJ-cGd3Bx5gTOAxy-g/exec";
+  const SUPABASE_URL = "https://tlfyjbwqcolwiwvvrrze.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_08GcJ_BFM1rqQbA0pbpYuQ_a3daf8Hj";
+
+  async function supaGet(path) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) throw new Error('Error al consultar Supabase');
+    return res.json();
+  }
+  async function supaPost(path, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'return=representation'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+  async function supaPatch(path, body) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'return=representation'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+  async function supaDelete(path) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'DELETE',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
   const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
@@ -200,27 +241,15 @@
     document.getElementById('tab-turnos').classList.toggle('activa', nombre === 'turnos');
   }
 
-  async function llamar(action, extra) {
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, ...extra })
-    });
-    return res.json();
-  }
-
   async function cargarTodo() {
-    if (APPS_SCRIPT_URL.includes('PEGA_AQUI')) {
-      document.getElementById('tabla-cierres-body').innerHTML = '<tr><td colspan="3">Falta configurar APPS_SCRIPT_URL en admin.html</td></tr>';
-      return;
-    }
-    const result = await llamar('admin_get_all', {});
-    if (result.ok) {
-      turnos = result.turnos;
-      cierres = result.cierres;
+    try {
+      turnos = await supaGet('turnos?select=*&order=hora_inicio.asc');
+      cierres = await supaGet('cierres?select=*');
       renderTablaCierres();
       renderTablaTurnos();
       if (fechaSeleccionada) renderTurnosDelDia();
+    } catch (err) {
+      document.getElementById('tabla-cierres-body').innerHTML = '<tr><td colspan="3">Error al conectar con Supabase.</td></tr>';
     }
   }
 
@@ -284,7 +313,7 @@
       return String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
     });
 
-    const cerradosHoy = cierres.filter(c => c.Fecha === fechaISO).map(c => c.Turno);
+    const cerradosHoy = cierres.filter(c => c.fecha === fechaISO).map(c => c.hora);
 
     const checksDiv = document.getElementById('checks-turnos');
     if (!turnosDelDia.length) {
@@ -319,28 +348,28 @@
     btn.textContent = 'Guardando…';
 
     const fechaISO = toISO(fechaSeleccionada);
-    const cerradosHoyAntes = cierres.filter(c => c.Fecha === fechaISO).map(c => c.Turno);
+    const cerradosHoyAntes = cierres.filter(c => c.fecha === fechaISO).map(c => c.hora);
     const checks = document.querySelectorAll('.check-turno');
 
-    for (const cb of checks) {
-      const hora = cb.value;
-      const yaCerrado = cerradosHoyAntes.includes(hora);
-      if (cb.checked && !yaCerrado) {
-        await llamar('admin_cerrar_turno', { fecha: fechaISO, hora });
-      } else if (!cb.checked && yaCerrado) {
-        await llamar('admin_reabrir_turno', { fecha: fechaISO, hora });
+    try {
+      for (const cb of checks) {
+        const hora = cb.value;
+        const yaCerrado = cerradosHoyAntes.includes(hora);
+        if (cb.checked && !yaCerrado) {
+          await supaPost('cierres', { fecha: fechaISO, hora });
+        } else if (!cb.checked && yaCerrado) {
+          await supaDelete(`cierres?fecha=eq.${fechaISO}&hora=eq.${hora}`);
+        }
       }
-    }
-
-    const result = await llamar('admin_get_all', {});
-    if (result.ok) {
-      turnos = result.turnos;
-      cierres = result.cierres;
+      cierres = await supaGet('cierres?select=*');
       renderTablaCierres();
       renderTurnosDelDia();
+      status.textContent = 'Cierres guardados.';
+      status.className = 'status ok';
+    } catch (err) {
+      status.textContent = 'No se pudo guardar. Probá de nuevo.';
+      status.className = 'status err';
     }
-    status.textContent = 'Cierres guardados.';
-    status.className = 'status ok';
     btn.disabled = false;
     btn.textContent = 'Guardar';
   }
@@ -348,15 +377,15 @@
   function renderTablaCierres() {
     const tbody = document.getElementById('tabla-cierres-body');
     const hoyISO = toISO(new Date());
-    const vigentes = cierres.filter(c => c.Fecha >= hoyISO);
+    const vigentes = cierres.filter(c => c.fecha >= hoyISO);
 
     if (!vigentes.length) {
       tbody.innerHTML = '<tr><td colspan="3" style="color:var(--verde-2); font-style:italic;">No hay cierres programados.</td></tr>';
       return;
     }
-    const ordenados = [...vigentes].sort((a,b) => a.Fecha.localeCompare(b.Fecha));
+    const ordenados = [...vigentes].sort((a,b) => a.fecha.localeCompare(b.fecha));
     tbody.innerHTML = ordenados.map(c => {
-      const [anio, mes, dia] = c.Fecha.split('-').map(Number);
+      const [anio, mes, dia] = c.fecha.split('-').map(Number);
       const fechaObj = new Date(anio, mes - 1, dia);
       const nombreDia = DIAS_SEMANA[fechaObj.getDay()];
       return `<tr>
@@ -364,18 +393,23 @@
           <div style="font-family:'Playfair Display', serif; font-weight:700; font-size:16px; color:var(--verde); text-transform:capitalize;">${nombreDia}</div>
           <div style="font-size:12px; color:var(--verde-2);">${dia} de ${MESES[mes - 1]}</div>
         </td>
-        <td>${c.Turno} hs</td>
-        <td><button class="secundario" onclick="eliminarCierre('${c.Fecha}','${c.Turno}', this)">Eliminar</button></td>
+        <td>${c.hora} hs</td>
+        <td><button class="secundario" onclick="eliminarCierre('${c.fecha}','${c.hora}', this)">Eliminar</button></td>
       </tr>`;
     }).join('');
   }
 
   async function eliminarCierre(fecha, hora, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
-    await llamar('admin_reabrir_turno', { fecha, hora });
-    cierres = cierres.filter(c => !(c.Fecha === fecha && c.Turno === hora));
-    renderTablaCierres();
-    if (fechaSeleccionada && toISO(fechaSeleccionada) === fecha) renderTurnosDelDia();
+    try {
+      await supaDelete(`cierres?fecha=eq.${fecha}&hora=eq.${hora}`);
+      cierres = cierres.filter(c => !(c.fecha === fecha && c.hora === hora));
+      renderTablaCierres();
+      if (fechaSeleccionada && toISO(fechaSeleccionada) === fecha) renderTurnosDelDia();
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+      alert('No se pudo eliminar. Probá de nuevo.');
+    }
   }
 
   function renderTablaTurnos() {
@@ -416,19 +450,24 @@
     btn.disabled = true;
     btn.textContent = editandoId ? 'Guardando…' : 'Añadiendo…';
 
-    const turno = { id: editandoId, nombre, hora_inicio: inicio, hora_fin: fin, dias, activo: true };
-    const result = await llamar('admin_save_turno', { turno });
-    btn.disabled = false;
-    if (result.ok) {
+    const turno = { nombre, hora_inicio: inicio, hora_fin: fin, dias, activo: true };
+
+    try {
+      if (editandoId) {
+        await supaPatch(`turnos?id=eq.${editandoId}`, turno);
+      } else {
+        await supaPost('turnos', turno);
+      }
       status.textContent = editandoId ? 'Turno actualizado.' : 'Turno añadido.';
       status.className = 'status ok';
       cancelarEdicion();
       await cargarTodo();
-    } else {
-      status.textContent = result.error;
+    } catch (err) {
+      status.textContent = 'No se pudo guardar el turno.';
       status.className = 'status err';
       btn.textContent = editandoId ? 'Guardar cambios' : 'Añadir turno';
     }
+    btn.disabled = false;
   }
 
   function editarTurno(id) {
@@ -455,10 +494,13 @@
   async function eliminarTurno(id, btn) {
     if (!confirm('¿Eliminar este turno? Las reservas ya hechas no se borran.')) return;
     if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
-    const result = await llamar('admin_delete_turno', { id });
-    if (result.ok) {
+    try {
+      await supaDelete(`turnos?id=eq.${id}`);
       turnos = turnos.filter(t => String(t.id) !== String(id));
       renderTablaTurnos();
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+      alert('No se pudo eliminar el turno.');
     }
   }
 
