@@ -218,6 +218,8 @@
   let fechaSeleccionada = null;
   let mesVista = new Date();
   mesVista.setDate(1);
+  let turnosDesbloqueado = false;
+  const CODIGO_TURNOS = 'lulu';
 
   const ORDEN_VISUAL_DIAS = [1, 2, 3, 4, 5, 6, 0]; // Lunes..Domingo, aunque internamente 0=domingo
   document.getElementById('dias-check').innerHTML = ORDEN_VISUAL_DIAS.map(i =>
@@ -225,6 +227,15 @@
   ).join('');
 
   function mostrarVista(nombre) {
+    if (nombre === 'turnos' && !turnosDesbloqueado) {
+      const codigo = prompt('Código para acceder a "Definir turnos":');
+      if (codigo === null) return; // canceló
+      if (codigo.trim().toLowerCase() !== CODIGO_TURNOS) {
+        alert('Código incorrecto.');
+        return;
+      }
+      turnosDesbloqueado = true;
+    }
     document.getElementById('vista-cierres').style.display = nombre === 'cierres' ? 'block' : 'none';
     document.getElementById('vista-turnos').style.display = nombre === 'turnos' ? 'block' : 'none';
     document.getElementById('tab-cierres').classList.toggle('activa', nombre === 'cierres');
