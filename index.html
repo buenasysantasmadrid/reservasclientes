@@ -433,10 +433,19 @@
         supaGet(`cierres?fecha=eq.${fechaISO}&select=hora`)
       ]);
       const horasCerradas = cierresData.map(c => c.hora);
-      turnosCache = turnosData.filter(t =>
-        String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana)) &&
-        !horasCerradas.includes(t.hora_inicio)
-      );
+      const esHoy = fechaISO === toISO(new Date());
+      const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
+
+      turnosCache = turnosData.filter(t => {
+        const enDias = String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
+        const noCerrado = !horasCerradas.includes(t.hora_inicio);
+        if (!enDias || !noCerrado) return false;
+        if (esHoy) {
+          const [h, m] = t.hora_inicio.split(':').map(Number);
+          if (h * 60 + m - 5 <= horaActual) return false;
+        }
+        return true;
+      });
 
       if (!turnosCache.length) {
         turnoEl.innerHTML = '<option value="">No hay turnos disponibles ese día</option>';
