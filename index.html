@@ -514,7 +514,7 @@
       action: 'reservar',
       nombre: form.nombre.value.trim(),
       email: form.email.value.trim(),
-      telefono: form.prefijo.value + ' ' + numeroLimpio,
+      telefono: form.prefijo.value.replace('+', '') + numeroLimpio,
       fecha: toISO(fechaSeleccionada),
       turno_id: form.turno.value,
       personas: form.personas.value,
