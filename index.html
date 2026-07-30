@@ -432,23 +432,33 @@
         supaGet('turnos?activo=eq.true&select=id,nombre,dias,hora_inicio,hora_fin'),
         supaGet(`cierres?fecha=eq.${fechaISO}&select=hora`)
       ]);
+
       const horasCerradas = cierresData.map(c => c.hora);
+
+      const turnosAbiertos = turnosData.filter(t => {
+        const enDias = String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
+        const noCerrado = !horasCerradas.includes(t.hora_inicio);
+        return enDias && noCerrado;
+      }).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+      if (!turnosAbiertos.length) {
+        turnoEl.innerHTML = '<option value="">ESTE DÍA NO ABRIMOS, te esperamos otro día</option>';
+        turnoEl.disabled = true;
+        return;
+      }
+
       const esHoy = fechaISO === toISO(new Date());
       const horaActual = new Date().getHours() * 60 + new Date().getMinutes();
 
-      turnosCache = turnosData.filter(t => {
-        const enDias = String(t.dias).split(',').map(d => d.trim()).includes(String(diaSemana));
-        const noCerrado = !horasCerradas.includes(t.hora_inicio);
-        if (!enDias || !noCerrado) return false;
-        if (esHoy) {
-          const [h, m] = t.hora_inicio.split(':').map(Number);
-          if (h * 60 + m - 5 <= horaActual) return false;
-        }
-        return true;
-      }).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+      turnosCache = turnosAbiertos.filter(t => {
+        if (!esHoy) return true;
+        const [h, m] = t.hora_inicio.split(':').map(Number);
+        return h * 60 + m - 5 > horaActual;
+      });
 
       if (!turnosCache.length) {
-        turnoEl.innerHTML = '<option value="">No hay turnos disponibles ese día</option>';
+        turnoEl.innerHTML = '<option value="">Ya no quedan turnos disponibles hoy</option>';
+        turnoEl.disabled = true;
         return;
       }
 
