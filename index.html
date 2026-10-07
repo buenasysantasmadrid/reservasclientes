@@ -313,7 +313,7 @@
         <div class="caja-blanca">
           <img src="logo_buenasysantas.jpg" alt="Buenas y Santas" onerror="this.style.display='none'; document.getElementById('logo-fallback-conf').style.display='block';">
           <div class="logo-fallback-conf" id="logo-fallback-conf" style="display:none;">BUENAS Y SANTAS</div>
-          <p class="mensaje">Reserva solicitada.<br>Te confirmaremos por WhatsApp.</p>
+          <p class="mensaje" id="mensaje-confirmacion">Reserva solicitada.<br>Te confirmaremos por WhatsApp.</p>
           <button type="button" class="otra-reserva" onclick="hacerOtraReserva()">Hacer otra reserva</button>
         </div>
       </div>
@@ -351,6 +351,35 @@
       body: JSON.stringify(body)
     });
     if (!res.ok) throw new Error(await res.text());
+  }
+
+  // Script de la hoja de reservas: dice si la reserva quedó confirmada automáticamente
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
+  const MENSAJE_PENDIENTE = 'Reserva solicitada.<br>Te confirmaremos por WhatsApp.';
+  const MENSAJE_CONFIRMADA = '¡Reserva confirmada!<br>Te esperamos.';
+
+  // Misma clave que calcula el script (claveReservaWeb), sin mandar el teléfono a la vista
+  async function claveReserva(p) {
+    const texto = `${p.telefono}|${p.fecha.slice(0, 16)}|${p.pax}`;
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Pregunta al script durante unos segundos; si no contesta, se queda como pendiente
+  async function esperarConfirmacion(p) {
+    try {
+      const clave = await claveReserva(p);
+      const limite = Date.now() + 20000;
+      while (Date.now() < limite) {
+        await new Promise(r => setTimeout(r, 1500));
+        try {
+          const res = await fetch(`${SCRIPT_URL}?estadoReservaWeb=${clave}&_=${Date.now()}`, { cache: 'no-store' });
+          const data = await res.json();
+          if (data.estado) return data.estado === 'confirmada';
+        } catch (e) { /* se reintenta */ }
+      }
+    } catch (e) { /* sin respuesta: pendiente */ }
+    return false;
   }
 
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
@@ -575,6 +604,8 @@
 
     try {
       await supaPost('reservas', payload);
+      const confirmada = await esperarConfirmacion(payload);
+      document.getElementById('mensaje-confirmacion').innerHTML = confirmada ? MENSAJE_CONFIRMADA : MENSAJE_PENDIENTE;
       document.getElementById('reserva-form').style.display = 'none';
       const resumenDesktop = document.getElementById('resumen-desktop');
       if (resumenDesktop) resumenDesktop.style.display = 'none';
