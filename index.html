@@ -365,13 +365,28 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Pregunta al script durante unos segundos; si no contesta, se queda como pendiente
+  // Le pasa la reserva al script y este contesta al momento si quedó confirmada.
+  // Si no contesta, pregunta unos segundos más; si tampoco, se queda como pendiente.
   async function esperarConfirmacion(p) {
     try {
+      const control = new AbortController();
+      const corte = setTimeout(() => control.abort(), 20000);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'reservaWeb', record: p }),
+        signal: control.signal
+      });
+      clearTimeout(corte);
+      const data = await res.json();
+      if (data.estado) return data.estado === 'confirmada';
+    } catch (e) { /* se pregunta de otra forma */ }
+
+    try {
       const clave = await claveReserva(p);
-      const limite = Date.now() + 45000;
+      const limite = Date.now() + 10000;
       while (Date.now() < limite) {
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 1000));
         try {
           const res = await fetch(`${SCRIPT_URL}?estadoReservaWeb=${clave}&_=${Date.now()}`, { cache: 'no-store' });
           const data = await res.json();
