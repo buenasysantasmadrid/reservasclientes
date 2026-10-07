@@ -161,6 +161,15 @@
   .pantalla-confirmacion .mensaje{
     font-family:'Playfair Display', serif; font-weight:700; font-size:21px; color:var(--texto); line-height:1.45;
   }
+  .pantalla-confirmacion .conf-titulo{ color:var(--verde); font-size:22px; letter-spacing:.03em; }
+  .pantalla-confirmacion .conf-dia{
+    margin-top:18px; font-size:34px; line-height:1.1; text-transform:uppercase; color:var(--verde);
+  }
+  .pantalla-confirmacion .conf-fecha{ font-size:28px; line-height:1.2; }
+  .pantalla-confirmacion .conf-hora{ margin-top:8px; font-size:40px; line-height:1.1; color:var(--verde); }
+  .pantalla-confirmacion .conf-aviso{
+    margin-top:18px; font-family:'Nunito', sans-serif; font-weight:700; font-size:15px; line-height:1.4;
+  }
   .pantalla-confirmacion .otra-reserva{
     margin-top:22px; background:none; border:none; color:var(--verde);
     font-family:'Nunito', sans-serif; font-weight:700; font-size:13px; letter-spacing:.04em;
@@ -356,7 +365,15 @@
   // Script de la hoja de reservas: dice si la reserva quedó confirmada automáticamente
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
   const MENSAJE_PENDIENTE = 'Reserva solicitada.<br>Te confirmaremos por WhatsApp.';
-  const MENSAJE_CONFIRMADA = '¡RESERVA CONFIRMADA!<br>Te esperamos.';
+  // Reserva confirmada: día de la semana, fecha y hora bien grandes, y hasta qué hora es la mesa
+  function mensajeConfirmada(fecha, turno) {
+    const fin = (turno.hora_fin || '').slice(0, 5);
+    return '<div class="conf-titulo">¡RESERVA CONFIRMADA!</div>' +
+      `<div class="conf-dia">${DIAS_SEMANA[fecha.getDay()]}</div>` +
+      `<div class="conf-fecha">${fecha.getDate()} de ${MESES[fecha.getMonth()]}</div>` +
+      `<div class="conf-hora">${turno.hora_inicio.slice(0, 5)} hs</div>` +
+      (fin ? `<div class="conf-aviso">Recuerda que la mesa es hasta las ${fin} hs.</div>` : '');
+  }
 
   // Misma clave que calcula el script (claveReservaWeb), sin mandar el teléfono a la vista
   async function claveReserva(p) {
@@ -621,7 +638,7 @@
       await supaPost('reservas', payload);
       btn.textContent = 'Confirmando tu reserva…';
       const confirmada = await esperarConfirmacion(payload);
-      document.getElementById('mensaje-confirmacion').innerHTML = confirmada ? MENSAJE_CONFIRMADA : MENSAJE_PENDIENTE;
+      document.getElementById('mensaje-confirmacion').innerHTML = confirmada ? mensajeConfirmada(fechaSeleccionada, turnoSeleccionado) : MENSAJE_PENDIENTE;
       document.getElementById('reserva-form').style.display = 'none';
       const resumenDesktop = document.getElementById('resumen-desktop');
       if (resumenDesktop) resumenDesktop.style.display = 'none';
