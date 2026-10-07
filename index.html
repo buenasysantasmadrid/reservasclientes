@@ -356,11 +356,11 @@
   // Script de la hoja de reservas: dice si la reserva quedó confirmada automáticamente
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxslphHn0GNmCT8PQcmJHPzo4M9_bB1OABaiXEs5ugXAVxHtQNTF2v3u1HiYEi0lRrm/exec";
   const MENSAJE_PENDIENTE = 'Reserva solicitada.<br>Te confirmaremos por WhatsApp.';
-  const MENSAJE_CONFIRMADA = '¡Reserva confirmada!<br>Te esperamos.';
+  const MENSAJE_CONFIRMADA = '¡RESERVA CONFIRMADA!<br>Te esperamos.';
 
   // Misma clave que calcula el script (claveReservaWeb), sin mandar el teléfono a la vista
   async function claveReserva(p) {
-    const texto = `${p.telefono}|${p.fecha.slice(0, 16)}|${p.pax}`;
+    const texto = `${String(p.telefono).replace(/\D/g, '')}|${p.fecha.slice(0, 10)}|${p.fecha.slice(11, 16)}|${Number(p.pax)}`;
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
@@ -369,7 +369,7 @@
   async function esperarConfirmacion(p) {
     try {
       const clave = await claveReserva(p);
-      const limite = Date.now() + 20000;
+      const limite = Date.now() + 45000;
       while (Date.now() < limite) {
         await new Promise(r => setTimeout(r, 1500));
         try {
@@ -604,6 +604,7 @@
 
     try {
       await supaPost('reservas', payload);
+      btn.textContent = 'Confirmando tu reserva…';
       const confirmada = await esperarConfirmacion(payload);
       document.getElementById('mensaje-confirmacion').innerHTML = confirmada ? MENSAJE_CONFIRMADA : MENSAJE_PENDIENTE;
       document.getElementById('reserva-form').style.display = 'none';
