@@ -445,7 +445,7 @@
       }).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
 
       if (!turnosAbiertos.length) {
-        turnoEl.innerHTML = '<option value="">ESTE DÍA NO ABRIMOS, te esperamos otro día</option>';
+        turnoEl.innerHTML = '<option value="">CONTACTA TELEFÓNICAMENTE PARA RESERVAR. 91 50 60 647</option>';
         turnoEl.disabled = true;
         turnoEl.classList.add('turno-cerrado');
         return;
