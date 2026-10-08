@@ -135,6 +135,8 @@
   .status{ text-align:center; font-size: 14px; min-height: 20px; margin-top: 10px; font-weight:700; font-family:'Nunito', sans-serif; }
   .status.ok{ color: var(--verde); }
   .status.err{ color: #A63B3B; }
+  .status{ line-height: 1.5; }
+  .status a{ color: inherit; text-decoration: underline; white-space: nowrap; }
 
   .pantalla-confirmacion{
     display:none;
@@ -414,6 +416,34 @@
     return false;
   }
 
+  // Antes de reservar, pregunta al script si ese teléfono ya tiene reserva ese día
+  // en el mismo servicio (mediodía o noche). Si no contesta, se sigue con la reserva.
+  async function telefonoYaReservado(p) {
+    try {
+      const control = new AbortController();
+      const corte = setTimeout(() => control.abort(), 10000);
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'comprobarTelefono', telefono: p.telefono, fecha: p.fecha }),
+        signal: control.signal
+      });
+      clearTimeout(corte);
+      const data = await res.json();
+      return data.repetida === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function mensajeRepetida(hora) {
+    const servicio = Number(hora.slice(0, 2)) < 20 ? 'al mediodía' : 'por la noche';
+    return `Ya tenemos una reserva con este teléfono para ese día ${servicio}. ` +
+      'Si quieres cambiarla o reservar otra mesa, escríbenos un WhatsApp al ' +
+      '<a href="https://wa.me/34611121771" target="_blank" rel="noopener">611 12 17 71</a> ' +
+      'o llámanos al <a href="tel:+34915060647">91 50 60 647</a>.';
+  }
+
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
@@ -635,6 +665,11 @@
     };
 
     try {
+      if (await telefonoYaReservado(payload)) {
+        statusEl.innerHTML = mensajeRepetida(turnoSeleccionado.hora_inicio);
+        statusEl.className = 'status err';
+        return;
+      }
       await supaPost('reservas', payload);
       btn.textContent = 'Confirmando tu reserva…';
       const confirmada = await esperarConfirmacion(payload);
