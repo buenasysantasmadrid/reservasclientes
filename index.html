@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f9f9f9">
+<meta name="theme-color" content="#2a2a22">
 <title>Reservas — Buenas y Santas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -161,11 +161,36 @@
     .footer-bys { padding: 64px 32px 32px; }
     .footer-bys .fb-cols { grid-template-columns: repeat(3, 1fr); gap: 40px; }
   }
+  /* Portada con la foto de fondo, como la home de la web */
+  .portada{ position:relative; background:#2a2a22 url("empanadas.jpg") center 55%/cover no-repeat; color:#fff; padding:0 0 130px; }
+  .portada::before{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.50) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.55) 100%); }
+  .portada > *{ position:relative; z-index:1; }
+  .portada .franja{ position:relative; background:transparent; justify-content:flex-end; min-height:56px; }
+  .portada .franja-logo{ position:absolute; left:50%; top:20px; transform:translateX(-50%); }
+  .portada .franja-logo img{ width:64px; filter:brightness(0) invert(1); }
+  .portada .hamburguesa{ color:#fff; }
+  .portada-texto{ max-width:640px; margin:0 auto; padding:64px 20px 0; text-align:center; }
+  .portada .eyebrow{ color:rgba(255,255,255,.85); }
+  .portada h1{ color:#fff; text-shadow:0 2px 18px rgba(0,0,0,.25); }
+  .portada .lema{ color:rgba(255,255,255,.9); margin-bottom:0; }
+  .contenido.sobre-portada{ margin-top:-100px; position:relative; z-index:2; padding-top:0; }
+  .sobre-portada .tarjeta{ box-shadow:0 10px 36px rgba(0,0,0,.14); }
+  @media (min-width: 769px){
+    .portada{ padding-bottom:150px; }
+    .portada .franja{ justify-content:space-between; padding:20px max(24px, calc((100% - 1100px) / 2)); }
+    .portada .franja-logo{ position:static; transform:none; }
+    .portada .franja-logo img{ width:84px; }
+    .portada .menu-escritorio a{ color:#fff; }
+    .portada .menu-escritorio a.actual{ color:#fff; font-weight:600; text-decoration:underline; text-underline-offset:6px; }
+    .portada-texto{ padding-top:40px; }
+    .contenido.sobre-portada{ margin-top:-110px; }
+  }
 </style>
 </head>
 <body>
 
 
+<div class="portada">
 
 <header class="franja">
   <a href="https://www.buenasysantas.es/nueva-home/" class="franja-logo"><img src="https://www.buenasysantas.es/wp-content/uploads/2021/06/logo_buenasysantas_f55d698d-ced8-402b-bd56-4cc5224fc5b6_600x200.webp" alt="Buenas y Santas"></a>
@@ -185,11 +210,13 @@
   <a class="menu-boton lleno" href="#reservar" onclick="document.body.classList.remove('menu-abierto')">Reservas</a>
   <a class="menu-boton" href="https://widget.privateaser.com/v/17f9af87-63803" target="_blank" rel="noopener">Eventos</a>
 </div>
-<div class="foto-portada"><img src="empanadas.jpg" alt="Empanadas caseras de Buenas y Santas"></div>
-<main class="contenido">
-  <p class="eyebrow">C. de Bolívar 9 · Legazpi</p>
-  <h1>Buenas y Santas</h1>
-  <p class="lema">Nueva cocina casera argentina.</p>
+  <div class="portada-texto">
+    <p class="eyebrow">C. de Bolívar 9 · Legazpi</p>
+    <h1>Buenas y Santas</h1>
+    <p class="lema">Nueva cocina casera argentina.</p>
+  </div>
+</div>
+<main class="contenido sobre-portada">
   <section class="tarjeta" id="reservar">
     <h2>Reservar mesa</h2>
     <p class="sub">Eliges día, hora y cuántos sois, y te confirmamos la reserva.</p>
@@ -214,6 +241,7 @@
           <select id="turno" name="turno" class="oculto" disabled aria-hidden="true" tabindex="-1">
             <option value="">Elige primero el día…</option>
           </select>
+          <div id="chips-turno" class="chips-turno"></div>
           <div id="chips-turno" class="chips-turno"></div>
           <p class="nota-grande">TURNOS DE 1,5 HS</p>
         </div>
@@ -673,6 +701,85 @@
     }
   });
 </script>
+
+<script>
+(function () {
+  const formEl = document.getElementById('reserva-form');
+  const turnoSel = document.getElementById('turno');
+  const persSel = document.getElementById('personas');
+  const cajaTurno = document.getElementById('chips-turno');
+
+  function pintarTurnos() {
+    const opciones = [...turnoSel.options].filter(o => o.value);
+    cajaTurno.innerHTML = '';
+    if (!opciones.length) {
+      const texto = (turnoSel.options[0] && turnoSel.options[0].textContent) || '';
+      const p = document.createElement('p');
+      if (turnoSel.classList.contains('turno-cerrado')) {
+        p.className = 'turno-msg cerrado';
+        p.innerHTML = 'Para este día no quedan horas para reservar online. Llámanos al <a href="tel:+34915060647">91 50 60 647</a> o escríbenos un WhatsApp al <a href="https://wa.me/34611121771">611 12 17 71</a>.';
+      } else {
+        p.className = 'turno-msg';
+        p.textContent = texto === 'Elige primero el día…' ? 'Elige primero el día en el calendario.' : texto;
+      }
+      cajaTurno.appendChild(p);
+      return;
+    }
+    const grupos = [['Comida', []], ['Cena', []]];
+    opciones.forEach(o => {
+      const hora = o.textContent.replace(' hs', '').trim();
+      grupos[parseInt(hora, 10) < 20 ? 0 : 1][1].push([o.value, hora]);
+    });
+    grupos.forEach(([nombre, lista]) => {
+      if (!lista.length) return;
+      const t = document.createElement('p'); t.className = 'grupo'; t.textContent = nombre; cajaTurno.appendChild(t);
+      const fila = document.createElement('div'); fila.className = 'chips';
+      lista.forEach(([valor, hora]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip' + (turnoSel.value === valor ? ' activo' : ''); b.textContent = hora;
+        b.addEventListener('click', () => { turnoSel.value = valor; turnoSel.dispatchEvent(new Event('change')); pintarTurnos(); });
+        fila.appendChild(b);
+      });
+      cajaTurno.appendChild(fila);
+    });
+  }
+  new MutationObserver(pintarTurnos).observe(turnoSel, { childList: true, attributes: true });
+  formEl.addEventListener('reset', () => setTimeout(pintarTurnos, 0));
+
+  // Sin hora no se envía (el desplegable de turno está oculto)
+  formEl.addEventListener('submit', e => {
+    if (fechaSeleccionada && !turnoSel.value) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const s = document.getElementById('status'); s.className = 'status err'; s.textContent = 'Elige a qué hora venís.';
+      cajaTurno.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, true);
+
+  // "Reservar mesa" de la barra: envía si está todo, si no lleva a lo que falta
+  const btnBarra = document.getElementById('barra-reservar');
+  if (btnBarra) {
+    document.body.classList.add('con-barra');
+    btnBarra.addEventListener('click', () => {
+      const falta = !fechaSeleccionada ? 'paso-dia' : !turnoSel.value ? 'chips-turno' : !persSel.value ? 'personas'
+        : !formEl.nombre.value.trim() ? 'nombre' : !formEl.email.value.trim() ? 'email' : !formEl.telefono.value.trim() ? 'telefono'
+        : !document.getElementById('acepto').checked ? 'acepto' : '';
+      if (falta) {
+        const el = document.getElementById(falta);
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el.focus && ['personas','nombre','email','telefono'].includes(falta)) setTimeout(() => el.focus({ preventScroll: true }), 400);
+      } else {
+        formEl.requestSubmit(document.getElementById('submit-btn'));
+      }
+    });
+    const barra = document.querySelector('.barra-abajo');
+    setInterval(() => {
+      barra.style.display = document.getElementById('pantalla-confirmacion').style.display === 'flex' ? 'none' : '';
+    }, 500);
+  }
+  pintarTurnos();
+})();
+</script>
+
 
 <script>
 (function () {
