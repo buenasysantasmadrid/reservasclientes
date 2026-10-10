@@ -131,15 +131,17 @@
   .pantalla-confirmacion .otra-reserva{ margin-top:22px; background:none; border:1.5px solid var(--verde); color:var(--verde); border-radius:999px;
     padding:12px 22px; font:600 15px 'Inter', sans-serif; cursor:pointer; }
 
-  /* Barra fija de abajo (como la captura) */
-  .barra-abajo{ position:fixed; left:0; right:0; bottom:0; z-index:15; background:rgba(249,249,249,.96); backdrop-filter:blur(8px);
-    border-top:1px solid var(--linea); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:10px; }
-  .barra-abajo a, .barra-abajo button{ flex:1; height:52px; display:flex; align-items:center; justify-content:center; border-radius:999px; font:600 15px 'Inter', sans-serif;
-    text-decoration:none; cursor:pointer; border:1.5px solid var(--verde); }
-  .barra-abajo .lleno{ background:var(--verde); color:#fff; }
-  .barra-abajo .borde{ background:#fff; color:var(--verde); }
+  /* Barra fija de abajo: lo que se va reservando + botón */
+  .barra-abajo{ position:fixed; left:0; right:0; bottom:0; z-index:15; background:rgba(255,255,255,.97); backdrop-filter:blur(8px);
+    border-top:1px solid var(--linea); box-shadow:0 -6px 24px rgba(0,0,0,.06); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .barra-dentro{ max-width:640px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .barra-resumen{ flex:1; min-width:0; line-height:1.3; }
+  .barra-linea1{ font-family:"Fraunces", serif; font-weight:600; font-size:17px; color:var(--verde); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .barra-linea2{ font-size:13px; color:var(--suave); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .barra-abajo button{ flex:0 0 auto; height:50px; padding:0 24px; border-radius:999px; border:none; background:var(--verde); color:#fff;
+    font:600 15px "Inter", sans-serif; cursor:pointer; }
   body.con-barra .footer-bys{ padding-bottom:110px; }
-  @media (min-width: 769px){ .barra-abajo{ display:none; } body.con-barra .footer-bys{ padding-bottom:32px; } .tarjeta{ padding:32px 32px 34px; } }
+  @media (min-width: 769px){ .tarjeta{ padding:32px 32px 34px; } }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } html{ scroll-behavior:auto; } }
 
   .footer-bys { background-color: #f5f0e6; color: #3b3b35; text-align: center; padding: 48px 24px 28px; font-family: 'Inter', sans-serif; }
@@ -242,7 +244,6 @@
             <option value="">Elige primero el día…</option>
           </select>
           <div id="chips-turno" class="chips-turno"></div>
-          <div id="chips-turno" class="chips-turno"></div>
           <p class="nota-grande">TURNOS DE 1,5 HS</p>
         </div>
 
@@ -314,7 +315,14 @@
         <button type="submit" class="enviar" id="submit-btn">Confirmar reserva</button>
         <p class="status" id="status"></p>
       </form>
-    
+    <div class="pantalla-confirmacion" id="pantalla-confirmacion">
+        <div class="caja-blanca">
+          <img src="logo_buenasysantas.jpg" alt="Buenas y Santas" onerror="this.style.display='none'; document.getElementById('logo-fallback-conf').style.display='block';">
+          <div class="logo-fallback-conf" id="logo-fallback-conf" style="display:none;">BUENAS Y SANTAS</div>
+          <p class="mensaje" id="mensaje-confirmacion">Reserva solicitada.<br>Te confirmaremos por WhatsApp.</p>
+          <button type="button" class="otra-reserva" onclick="hacerOtraReserva()">Hacer otra reserva</button>
+        </div>
+      </div>
   </section>
 </main>
 
@@ -350,8 +358,10 @@
   <p class="fb-legal"><a href="https://www.buenasysantas.es/nueva-home/politica-de-privacidad/">Política de privacidad</a> · © 2026 Buenas y Santas</p>
 </footer>
 <div class="barra-abajo">
-  <button type="button" class="lleno" id="barra-reservar">Reservar mesa</button>
-  <a class="borde" href="https://www.google.com/maps/place/Buenas+y+Santas+-+Restaurante+Argentino/@40.3919903,-3.6954383,530m/data=!3m2!1e3!4b1!4m6!3m5!1s0xd4226480a49d76d:0x7d74286ac70ff0cc!8m2!3d40.3919862!4d-3.6928634!16s%2Fg%2F1td4fw0v" target="_blank" rel="noopener">Cómo llegar</a>
+  <div class="barra-dentro">
+    <div class="barra-resumen" aria-live="polite"><div class="barra-linea1" id="barra-linea1">Tu reserva</div><div class="barra-linea2" id="barra-linea2">Elige día, hora y personas</div></div>
+    <button type="button" id="barra-reservar">Reservar</button>
+  </div>
 </div>
 <div id="resumen-desktop" style="display:none"><div id="resumen-contenido-desktop"></div></div>
 <script>
@@ -772,88 +782,23 @@
       }
     });
     const barra = document.querySelector('.barra-abajo');
-    setInterval(() => {
+    const DIAS_C = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const l1 = document.getElementById('barra-linea1'), l2 = document.getElementById('barra-linea2');
+    const pintarBarra = () => {
       barra.style.display = document.getElementById('pantalla-confirmacion').style.display === 'flex' ? 'none' : '';
-    }, 500);
-  }
-  pintarTurnos();
-})();
-</script>
-
-
-<script>
-(function () {
-  const formEl = document.getElementById('reserva-form');
-  const turnoSel = document.getElementById('turno');
-  const persSel = document.getElementById('personas');
-  const cajaTurno = document.getElementById('chips-turno');
-
-  function pintarTurnos() {
-    const opciones = [...turnoSel.options].filter(o => o.value);
-    cajaTurno.innerHTML = '';
-    if (!opciones.length) {
-      const texto = (turnoSel.options[0] && turnoSel.options[0].textContent) || '';
-      const p = document.createElement('p');
-      if (turnoSel.classList.contains('turno-cerrado')) {
-        p.className = 'turno-msg cerrado';
-        p.innerHTML = 'Para este día no quedan horas para reservar online. Llámanos al <a href="tel:+34915060647">91 50 60 647</a> o escríbenos un WhatsApp al <a href="https://wa.me/34611121771">611 12 17 71</a>.';
-      } else {
-        p.className = 'turno-msg';
-        p.textContent = texto === 'Elige primero el día…' ? 'Elige primero el día en el calendario.' : texto;
-      }
-      cajaTurno.appendChild(p);
-      return;
-    }
-    const grupos = [['Comida', []], ['Cena', []]];
-    opciones.forEach(o => {
-      const hora = o.textContent.replace(' hs', '').trim();
-      grupos[parseInt(hora, 10) < 20 ? 0 : 1][1].push([o.value, hora]);
-    });
-    grupos.forEach(([nombre, lista]) => {
-      if (!lista.length) return;
-      const t = document.createElement('p'); t.className = 'grupo'; t.textContent = nombre; cajaTurno.appendChild(t);
-      const fila = document.createElement('div'); fila.className = 'chips';
-      lista.forEach(([valor, hora]) => {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'chip' + (turnoSel.value === valor ? ' activo' : ''); b.textContent = hora;
-        b.addEventListener('click', () => { turnoSel.value = valor; turnoSel.dispatchEvent(new Event('change')); pintarTurnos(); });
-        fila.appendChild(b);
-      });
-      cajaTurno.appendChild(fila);
-    });
-  }
-  new MutationObserver(pintarTurnos).observe(turnoSel, { childList: true, attributes: true });
-  formEl.addEventListener('reset', () => setTimeout(pintarTurnos, 0));
-
-  // Sin hora no se envía (el desplegable de turno está oculto)
-  formEl.addEventListener('submit', e => {
-    if (fechaSeleccionada && !turnoSel.value) {
-      e.preventDefault(); e.stopImmediatePropagation();
-      const s = document.getElementById('status'); s.className = 'status err'; s.textContent = 'Elige a qué hora venís.';
-      cajaTurno.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, true);
-
-  // "Reservar mesa" de la barra: envía si está todo, si no lleva a lo que falta
-  const btnBarra = document.getElementById('barra-reservar');
-  if (btnBarra) {
-    document.body.classList.add('con-barra');
-    btnBarra.addEventListener('click', () => {
-      const falta = !fechaSeleccionada ? 'paso-dia' : !turnoSel.value ? 'chips-turno' : !persSel.value ? 'personas'
-        : !formEl.nombre.value.trim() ? 'nombre' : !formEl.email.value.trim() ? 'email' : !formEl.telefono.value.trim() ? 'telefono'
-        : !document.getElementById('acepto').checked ? 'acepto' : '';
-      if (falta) {
-        const el = document.getElementById(falta);
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (el.focus && ['personas','nombre','email','telefono'].includes(falta)) setTimeout(() => el.focus({ preventScroll: true }), 400);
-      } else {
-        formEl.requestSubmit(document.getElementById('submit-btn'));
-      }
-    });
-    const barra = document.querySelector('.barra-abajo');
-    setInterval(() => {
-      barra.style.display = document.getElementById('pantalla-confirmacion').style.display === 'flex' ? 'none' : '';
-    }, 500);
+      const t = turnosCache.find(t => String(t.id) === turnoSel.value);
+      const dia = fechaSeleccionada ? DIAS_C[fechaSeleccionada.getDay()] + ' ' + fechaSeleccionada.getDate() + ' ' + MESES_C[fechaSeleccionada.getMonth()] : '';
+      l1.textContent = dia ? dia + (t ? ' · ' + t.hora_inicio : '') : 'Tu reserva';
+      const n = persSel.value;
+      l2.textContent = !fechaSeleccionada ? 'Elige día, hora y personas'
+        : !t ? 'Elige la hora'
+        : !n ? 'Elige cuántos sois'
+        : n + (n === '1' ? ' persona' : ' personas');
+    };
+    ['click', 'change', 'input'].forEach(ev => document.addEventListener(ev, () => setTimeout(pintarBarra, 0)));
+    setInterval(pintarBarra, 700);
+    pintarBarra();
   }
   pintarTurnos();
 })();
