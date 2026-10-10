@@ -187,6 +187,15 @@
     .portada-texto{ padding-top:40px; }
     .contenido.sobre-portada{ margin-top:-110px; }
   }
+  /* Datos obligatorios que faltan */
+  .calendario.falta, input.falta, select.falta{ border-color:#C0392B !important; box-shadow:0 0 0 3px rgba(192,57,43,.15) !important; }
+  input.falta, select.falta{ background-color:#fff6f5 !important; }
+  .chips-turno.falta{ border:2px solid #C0392B; border-radius:16px; padding:10px; }
+  .checkbox-field.falta{ border:2px solid #C0392B; border-radius:12px; padding:10px; background:#fff6f5; }
+  .error-campo{ margin:8px 0 0; color:#C0392B; font-size:14px; font-weight:600; line-height:1.4; }
+  .error-campo::before{ content:"⚠ "; }
+  .status.aviso-falta{ background:#fdecea; border:1px solid #C0392B; color:#A12B1F; border-radius:12px; padding:12px 14px; font-weight:500; }
+  .barra-linea2.con-falta{ color:#C0392B; font-weight:600; }
 </style>
 </head>
 <body>
@@ -222,7 +231,7 @@
   <section class="tarjeta" id="reservar">
     <h2>Reservar mesa</h2>
     <p class="sub">Eliges día, hora y cuántos sois, y te confirmamos la reserva.</p>
-    <form id="reserva-form">
+    <form id="reserva-form" novalidate>
 
         <p class="paso-titulo" id="paso-dia">¿Qué día?</p>
         <div class="calendario">
@@ -756,31 +765,90 @@
   new MutationObserver(pintarTurnos).observe(turnoSel, { childList: true, attributes: true });
   formEl.addEventListener('reset', () => setTimeout(pintarTurnos, 0));
 
-  // Sin hora no se envía (el desplegable de turno está oculto)
-  formEl.addEventListener('submit', e => {
-    if (fechaSeleccionada && !turnoSel.value) {
-      e.preventDefault(); e.stopImmediatePropagation();
-      const s = document.getElementById('status'); s.className = 'status err'; s.textContent = 'Elige a qué hora venís.';
-      cajaTurno.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+  // ── Datos obligatorios: lo que falta se pone en rojo con un mensaje ──
+  const acepto = document.getElementById('acepto');
+  const CAMPOS = [
+    { clave: 'dia', marca: () => document.querySelector('.calendario'), ancla: () => document.querySelector('.calendario'),
+      error: () => !fechaSeleccionada ? ['el día', 'Falta elegir el día en el calendario.'] : null },
+    { clave: 'hora', marca: () => cajaTurno, ancla: () => cajaTurno,
+      error: () => !turnoSel.value ? ['la hora', 'Falta elegir la hora.'] : null },
+    { clave: 'personas', marca: () => persSel, ancla: () => persSel,
+      error: () => !persSel.value ? ['cuántos sois', 'Falta elegir cuántos sois.'] : null },
+    { clave: 'nombre', marca: () => formEl.nombre, ancla: () => formEl.nombre,
+      error: () => !formEl.nombre.value.trim() ? ['tu nombre', 'Falta tu nombre y apellido.'] : null },
+    { clave: 'email', marca: () => formEl.email, ancla: () => formEl.email,
+      error: () => {
+        const v = formEl.email.value.trim();
+        if (!v) return ['tu email', 'Falta tu email.'];
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : ['un email correcto', 'Revisa el email: no parece correcto (ejemplo: nombre@gmail.com).'];
+      } },
+    { clave: 'telefono', marca: () => formEl.telefono, ancla: () => document.querySelector('.telefono-row'),
+      error: () => {
+        const v = formEl.telefono.value.replace(/\s+/g, '');
+        if (!v) return ['tu móvil', 'Falta tu móvil.'];
+        if (formEl.prefijo.value === '+34') return /^[67]\d{8}$/.test(v) ? null : ['un móvil correcto', 'Revisa el móvil: debe empezar por 6 o 7 y tener 9 números.'];
+        return /^\d{6,15}$/.test(v) ? null : ['un móvil correcto', 'Revisa el móvil: solo números, sin el prefijo.'];
+      } },
+    { clave: 'acepto', marca: () => acepto.closest('.checkbox-field'), ancla: () => acepto.closest('label'),
+      error: () => !acepto.checked ? ['aceptar la política de privacidad', 'Falta marcar esta casilla para poder enviar la reserva.'] : null }
+  ];
+  let intentado = false;
+
+  function revisarCampos(mostrar) {
+    const faltan = [];
+    CAMPOS.forEach(c => {
+      const err = c.error();
+      const marca = c.marca(), ancla = c.ancla();
+      let p = document.getElementById('err-' + c.clave);
+      if (err) faltan.push({ campo: c, texto: err[0] });
+      if (mostrar && err) {
+        marca.classList.add('falta');
+        if (!p) { p = document.createElement('p'); p.id = 'err-' + c.clave; p.className = 'error-campo'; ancla.insertAdjacentElement('afterend', p); }
+        p.textContent = err[1];
+      } else {
+        marca.classList.remove('falta');
+        if (p) p.remove();
+      }
+    });
+    return faltan;
+  }
+
+  function listaBonita(xs) {
+    return xs.length === 1 ? xs[0] : xs.slice(0, -1).join(', ') + ' y ' + xs[xs.length - 1];
+  }
+
+  // Antes que nada: si falta algo, no se envía y se avisa
+  document.addEventListener('submit', e => {
+    if (e.target !== formEl) return;
+    intentado = true;
+    const faltan = revisarCampos(true);
+    const s = document.getElementById('status');
+    if (!faltan.length) { s.className = 'status'; s.textContent = ''; return; }
+    e.preventDefault(); e.stopImmediatePropagation();
+    s.className = 'status err aviso-falta';
+    s.innerHTML = '<b>La reserva NO se ha enviado.</b><br>Falta ' + listaBonita(faltan.map(f => f.texto)) + '. Lo tienes marcado en rojo.';
+    const primero = faltan[0].campo.marca();
+    primero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (primero.focus && primero.matches('input:not([type=checkbox]), select')) setTimeout(() => primero.focus({ preventScroll: true }), 450);
   }, true);
 
-  // "Reservar mesa" de la barra: envía si está todo, si no lleva a lo que falta
+  // Al corregir, el rojo se quita solo
+  ['input', 'change', 'click'].forEach(ev => document.addEventListener(ev, () => setTimeout(() => {
+    if (!intentado) return;
+    const faltan = revisarCampos(true);
+    const s = document.getElementById('status');
+    if (s.classList.contains('aviso-falta')) {
+      if (!faltan.length) { s.className = 'status'; s.textContent = ''; }
+      else s.innerHTML = '<b>La reserva NO se ha enviado.</b><br>Falta ' + listaBonita(faltan.map(f => f.texto)) + '. Lo tienes marcado en rojo.';
+    }
+  }, 0)));
+  formEl.addEventListener('reset', () => { intentado = false; setTimeout(() => revisarCampos(false), 0); });
+
+  // "Reservar" de la barra: intenta enviar; si falta algo, se marca en rojo y lleva ahí
   const btnBarra = document.getElementById('barra-reservar');
   if (btnBarra) {
     document.body.classList.add('con-barra');
-    btnBarra.addEventListener('click', () => {
-      const falta = !fechaSeleccionada ? 'paso-dia' : !turnoSel.value ? 'chips-turno' : !persSel.value ? 'personas'
-        : !formEl.nombre.value.trim() ? 'nombre' : !formEl.email.value.trim() ? 'email' : !formEl.telefono.value.trim() ? 'telefono'
-        : !document.getElementById('acepto').checked ? 'acepto' : '';
-      if (falta) {
-        const el = document.getElementById(falta);
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (el.focus && ['personas','nombre','email','telefono'].includes(falta)) setTimeout(() => el.focus({ preventScroll: true }), 400);
-      } else {
-        formEl.requestSubmit(document.getElementById('submit-btn'));
-      }
-    });
+    btnBarra.addEventListener('click', () => formEl.requestSubmit(document.getElementById('submit-btn')));
     const barra = document.querySelector('.barra-abajo');
     const DIAS_C = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     const MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -791,7 +859,10 @@
       const dia = fechaSeleccionada ? DIAS_C[fechaSeleccionada.getDay()] + ' ' + fechaSeleccionada.getDate() + ' ' + MESES_C[fechaSeleccionada.getMonth()] : '';
       l1.textContent = dia ? dia + (t ? ' · ' + t.hora_inicio : '') : 'Tu reserva';
       const n = persSel.value;
-      l2.textContent = !fechaSeleccionada ? 'Elige día, hora y personas'
+      const faltan = intentado ? revisarCampos(true) : [];
+      l2.classList.toggle('con-falta', faltan.length > 0);
+      l2.textContent = faltan.length ? '⚠ Falta ' + faltan[0].texto + (faltan.length > 1 ? ' y más' : '')
+        : !fechaSeleccionada ? 'Elige día, hora y personas'
         : !t ? 'Elige la hora'
         : !n ? 'Elige cuántos sois'
         : n + (n === '1' ? ' persona' : ' personas');
