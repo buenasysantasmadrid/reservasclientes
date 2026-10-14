@@ -109,6 +109,16 @@
   .status{ text-align:center; font-size:14px; min-height:20px; margin-top:12px; font-weight:600; line-height:1.5; }
   .status.err{ color:#A63B3B; } .status.ok{ color:var(--verde); }
   .status a{ color:inherit; text-decoration:underline; white-space:nowrap; }
+  /* Aviso de reserva repetida: grande y con botones tipo pastilla */
+  .status.repetida{ margin-top:16px; padding:20px 18px; border-radius:18px; background:#fbeee8; color:#8a3a22; font-weight:500; }
+  .status.repetida .rep-titulo{ display:block; font-family:'Fraunces', serif; font-weight:600; font-size:21px; line-height:1.35; }
+  .status.repetida .rep-texto{ display:block; margin-top:10px; font-size:16px; }
+  .status.repetida .rep-botones{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+  .status.repetida .rep-btn{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; padding:8px 18px;
+    border-radius:999px; text-decoration:none; font:600 18px 'Inter', sans-serif; white-space:normal; }
+  .status.repetida .rep-btn small{ font-size:14px; font-weight:500; opacity:.9; }
+  .status.repetida .rep-wa{ background:#25D366; color:#fff; }
+  .status.repetida .rep-tel{ background:#fff; color:var(--verde); border:1.5px solid var(--verde); }
 
   .resumen-mobile{ border:1px solid var(--linea); border-radius:18px; padding:16px; margin:24px 0 10px; background:var(--caja); }
   .resumen-mobile .dia-grande{ font-family:'Fraunces', serif; font-weight:600; font-size:26px; color:var(--verde); text-align:center; text-transform:capitalize; line-height:1.1; }
@@ -229,8 +239,8 @@
 </div>
 <main class="contenido sobre-portada">
   <section class="tarjeta" id="reservar">
-    <h2>Reservar mesa</h2>
-    <p class="sub">Eliges día, hora y cuántos sois, y te confirmamos la reserva.</p>
+    <h2 id="titulo-reservar">Reservar mesa</h2>
+    <p class="sub" id="sub-reservar">Eliges día, hora y cuántos sois, y te confirmamos la reserva.</p>
     <form id="reserva-form" novalidate>
 
         <p class="paso-titulo" id="paso-dia">¿Qué día?</p>
@@ -320,7 +330,6 @@
           </label>
         </div>
 
-        <p class="aviso-whatsapp">Te confirmaremos la reserva por WhatsApp</p>
         <button type="submit" class="enviar" id="submit-btn">Confirmar reserva</button>
         <p class="status" id="status"></p>
       </form>
@@ -471,10 +480,12 @@
 
   function mensajeRepetida(hora) {
     const servicio = Number(hora.slice(0, 2)) < 20 ? 'al mediodía' : 'por la noche';
-    return `Ya tenemos una reserva con este teléfono para ese día ${servicio}. ` +
-      'Si quieres cambiarla o reservar otra mesa, escríbenos un WhatsApp al ' +
-      '<a href="https://wa.me/34611121771" target="_blank" rel="noopener">611 12 17 71</a> ' +
-      'o llámanos al <a href="tel:+34915060647">91 50 60 647</a>.';
+    return `<span class="rep-titulo">Ya tenemos una reserva con este teléfono para ese día ${servicio}.</span>` +
+      '<span class="rep-texto">Si quieres cambiarla o reservar otra mesa, escríbenos o llámanos:</span>' +
+      '<span class="rep-botones">' +
+      '<a class="rep-btn rep-wa" href="https://wa.me/34611121771" target="_blank" rel="noopener">Escribir por WhatsApp<small>611 12 17 71</small></a>' +
+      '<a class="rep-btn rep-tel" href="tel:+34915060647">Llamar<small>91 50 60 647</small></a>' +
+      '</span>';
   }
 
   const DIAS_SEMANA = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
@@ -648,6 +659,8 @@
     statusEl.className = 'status';
     document.getElementById('pantalla-confirmacion').style.display = 'none';
     document.getElementById('reserva-form').style.display = 'block';
+    document.getElementById('titulo-reservar').style.display = '';
+    document.getElementById('sub-reservar').style.display = '';
     const resumenDesktop = document.getElementById('resumen-desktop');
     if (resumenDesktop) resumenDesktop.style.display = '';
   }
@@ -700,7 +713,8 @@
     try {
       if (await telefonoYaReservado(payload)) {
         statusEl.innerHTML = mensajeRepetida(turnoSeleccionado.hora_inicio);
-        statusEl.className = 'status err';
+        statusEl.className = 'status repetida';
+        statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       await supaPost('reservas', payload);
@@ -710,7 +724,10 @@
       document.getElementById('reserva-form').style.display = 'none';
       const resumenDesktop = document.getElementById('resumen-desktop');
       if (resumenDesktop) resumenDesktop.style.display = 'none';
+      document.getElementById('titulo-reservar').style.display = 'none';
+      document.getElementById('sub-reservar').style.display = 'none';
       document.getElementById('pantalla-confirmacion').style.display = 'flex';
+      document.getElementById('reservar').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       statusEl.textContent = 'No se pudo enviar la reserva. Probá de nuevo en un momento.';
       statusEl.classList.add('err');
