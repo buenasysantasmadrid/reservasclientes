@@ -133,7 +133,11 @@
   .pantalla-confirmacion .caja-blanca{ width:100%; padding:16px 4px; }
   .pantalla-confirmacion .caja-blanca img{ max-height:56px; margin-bottom:16px; }
   .pantalla-confirmacion .mensaje{ font-family:'Fraunces', serif; font-weight:600; font-size:21px; line-height:1.45; margin:0; }
-  .pantalla-confirmacion .conf-titulo{ color:var(--verde); font-size:19px; letter-spacing:.04em; }
+  .pantalla-confirmacion .conf-titulo{ color:var(--verde); font-size:34px; line-height:1.15; letter-spacing:.02em; }
+  .pantalla-confirmacion .conf-mail{ margin-top:12px; font:500 16px/1.45 'Inter', sans-serif; color:var(--texto); }
+  .pantalla-confirmacion .conf-mail b{ color:var(--verde); }
+  @media (min-width: 480px){ .pantalla-confirmacion .conf-titulo{ font-size:42px; } }
+  #confeti{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:50; }
   .pantalla-confirmacion .conf-dia{ margin-top:16px; font-size:34px; line-height:1.1; text-transform:uppercase; color:var(--verde); }
   .pantalla-confirmacion .conf-fecha{ font-size:26px; }
   .pantalla-confirmacion .conf-hora{ margin-top:6px; font-size:40px; color:var(--verde); }
@@ -412,11 +416,43 @@
   // Reserva confirmada: día de la semana, fecha y hora bien grandes, y hasta qué hora es la mesa
   function mensajeConfirmada(fecha, turno) {
     const fin = (turno.hora_fin || '').slice(0, 5);
-    return '<div class="conf-titulo">¡RESERVA CONFIRMADA!</div>' +
+    return '<div class="conf-titulo">¡RESERVA<br>CONFIRMADA!</div>' +
+      '<div class="conf-mail">Te hemos enviado un <b>mail con la confirmación</b>.</div>' +
       `<div class="conf-dia">${DIAS_SEMANA[fecha.getDay()]}</div>` +
       `<div class="conf-fecha">${fecha.getDate()} de ${MESES[fecha.getMonth()]}</div>` +
       `<div class="conf-hora">${turno.hora_inicio.slice(0, 5)} hs</div>` +
       (fin ? `<div class="conf-aviso">Recuerda que la mesa es hasta las ${fin} hs.</div>` : '');
+  }
+
+  // Confeti de celebración cuando la reserva queda confirmada
+  function lanzarConfeti() {
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const c = document.createElement('canvas');
+    c.id = 'confeti';
+    document.body.appendChild(c);
+    const ctx = c.getContext('2d');
+    const W = c.width = innerWidth, H = c.height = innerHeight;
+    const colores = ['#2f5d3a', '#7fae5b', '#e8b33a', '#d9534f', '#f2d6a2', '#ffffff'];
+    const piezas = Array.from({ length: 160 }, () => ({
+      x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35,
+      vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4,
+      w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+      giro: Math.random() * Math.PI, vg: (Math.random() - .5) * .3,
+      color: colores[Math.floor(Math.random() * colores.length)]
+    }));
+    const inicio = performance.now();
+    (function paso(t) {
+      const pasado = t - inicio;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = Math.max(0, 1 - Math.max(0, pasado - 2500) / 1000);
+      piezas.forEach(p => {
+        p.vy += .35; p.vx *= .99; p.x += p.vx; p.y += p.vy; p.giro += p.vg;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.giro);
+        ctx.fillStyle = p.color; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.giro)));
+        ctx.restore();
+      });
+      if (pasado < 3500) requestAnimationFrame(paso); else c.remove();
+    })(inicio);
   }
 
   // Misma clave que calcula el script (claveReservaWeb), sin mandar el teléfono a la vista
@@ -720,6 +756,7 @@
       await supaPost('reservas', payload);
       btn.textContent = 'Confirmando tu reserva…';
       const confirmada = await esperarConfirmacion(payload);
+      if (confirmada) setTimeout(lanzarConfeti, 300);
       document.getElementById('mensaje-confirmacion').innerHTML = confirmada ? mensajeConfirmada(fechaSeleccionada, turnoSeleccionado) : MENSAJE_PENDIENTE;
       document.getElementById('reserva-form').style.display = 'none';
       const resumenDesktop = document.getElementById('resumen-desktop');
